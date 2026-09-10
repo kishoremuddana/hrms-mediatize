@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Bell } from "lucide-react";
-import { getNotifications, getUnreadCount } from "../services/notificationApi";
+import { Bell, BellRing } from "lucide-react";
+import {
+  getNotifications,
+  getUnreadCount,
+} from "../services/notificationApi";
 import NotificationDropdown from "./NotificationDropdown";
 
 function NotificationBell() {
@@ -21,8 +24,13 @@ function NotificationBell() {
 
   const fetchRecentNotifications = useCallback(async () => {
     setLoading(true);
+
     try {
-      const res = await getNotifications({ page: 1, limit: 10 });
+      const res = await getNotifications({
+        page: 1,
+        limit: 10,
+      });
+
       setNotifications(res.data.items || []);
       setUnreadCount(res.data.unread_count || 0);
     } catch (err) {
@@ -44,15 +52,25 @@ function NotificationBell() {
       handleRefresh();
     };
 
-    window.addEventListener("hrms:notification_update", handleCustomUpdate);
+    window.addEventListener(
+      "hrms:notification_update",
+      handleCustomUpdate
+    );
+
     return () => {
-      window.removeEventListener("hrms:notification_update", handleCustomUpdate);
+      window.removeEventListener(
+        "hrms:notification_update",
+        handleCustomUpdate
+      );
     };
   }, [fetchUnreadCount, handleRefresh]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -60,6 +78,7 @@ function NotificationBell() {
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -69,77 +88,201 @@ function NotificationBell() {
     if (!isOpen) {
       fetchRecentNotifications();
     }
+
     setIsOpen((prev) => !prev);
   };
 
   return (
-    <div style={styles.container} ref={containerRef}>
-      <button
-        style={styles.bellBtn}
-        onClick={toggleDropdown}
-        aria-label="Notifications"
-        title="Notifications"
-        className="hrms-btn hrms-btn-ghost hrms-btn-sm"
-      >
-        <Bell size={18} strokeWidth={2} />
-        {unreadCount > 0 && (
-          <span style={styles.badge}>
-            {unreadCount > 99 ? "99+" : unreadCount}
+    <>
+      <div style={styles.container} ref={containerRef}>
+        <button
+          type="button"
+          style={{
+            ...styles.bellBtn,
+            ...(isOpen ? styles.bellBtnActive : {}),
+          }}
+          onClick={toggleDropdown}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
+          title="Notifications"
+        >
+          <span
+            style={{
+              ...styles.iconWrapper,
+              ...(unreadCount > 0 ? styles.iconWrapperUnread : {}),
+            }}
+          >
+            {unreadCount > 0 ? (
+              <BellRing
+                size={19}
+                strokeWidth={2}
+              />
+            ) : (
+              <Bell
+                size={19}
+                strokeWidth={2}
+              />
+            )}
           </span>
-        )}
-      </button>
 
-      {isOpen && (
-        <NotificationDropdown
-          notifications={notifications}
-          unreadCount={unreadCount}
-          onClose={() => setIsOpen(false)}
-          onRefresh={handleRefresh}
-        />
+          {unreadCount > 0 && (
+            <span
+              style={styles.badge}
+              aria-label={`${unreadCount} unread notifications`}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+
+          <span style={styles.activeIndicator} />
+        </button>
+
+        {isOpen && (
+          <div style={styles.dropdownWrapper}>
+            <NotificationDropdown
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onClose={() => setIsOpen(false)}
+              onRefresh={handleRefresh}
+            />
+          </div>
+        )}
+      </div>
+
+      {loading && isOpen && (
+        <style>
+          {`
+            @keyframes hrmsNotificationSpin {
+              from {
+                transform: rotate(0deg);
+              }
+              to {
+                transform: rotate(360deg);
+              }
+            }
+          `}
+        </style>
       )}
-    </div>
+    </>
   );
 }
 
 const styles = {
   container: {
     position: "relative",
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
   },
+
   bellBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    color: "var(--text-primary)",
-    borderRadius: "var(--radius-md)",
-    width: "36px",
-    height: "36px",
+    position: "relative",
+    width: "42px",
+    height: "42px",
+    padding: 0,
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
+    border: "1px solid #dfe7e1",
+    borderRadius: "12px",
+
+    backgroundColor: "#ffffff",
+    color: "#284238",
+
     cursor: "pointer",
-    position: "relative",
-    transition: "background-color var(--transition-fast)",
+
+    boxShadow: "0 2px 8px rgba(24, 61, 45, 0.06)",
+
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease",
   },
-  bellIcon: {
-    fontSize: "1.1rem",
-    lineHeight: 1,
+
+  bellBtnActive: {
+    backgroundColor: "#f1f7f3",
+    borderColor: "#b8cfbf",
+    color: "#174d36",
+    boxShadow: "0 4px 14px rgba(24, 77, 54, 0.12)",
   },
+
+  iconWrapper: {
+    width: "30px",
+    height: "30px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    borderRadius: "9px",
+
+    transition: "background-color 180ms ease, color 180ms ease",
+  },
+
+  iconWrapperUnread: {
+    backgroundColor: "#edf6f0",
+    color: "#17613f",
+  },
+
   badge: {
     position: "absolute",
-    top: "-4px",
-    right: "-4px",
-    backgroundColor: "var(--danger-color)",
-    color: "#ffffff",
-    fontSize: "0.65rem",
-    fontWeight: "700",
-    borderRadius: "9999px",
-    minWidth: "18px",
-    height: "18px",
-    padding: "0 4px",
+    top: "-5px",
+    right: "-5px",
+
+    minWidth: "19px",
+    height: "19px",
+
+    padding: "0 5px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    border: "2px solid var(--bg-surface)",
+
+    backgroundColor: "#b42318",
+    color: "#ffffff",
+
+    border: "2px solid #ffffff",
+    borderRadius: "999px",
+
+    fontSize: "10px",
+    lineHeight: 1,
+    fontWeight: "800",
+
+    boxShadow: "0 2px 6px rgba(180, 35, 24, 0.25)",
+
+    zIndex: 3,
+  },
+
+  activeIndicator: {
+    position: "absolute",
+    bottom: "3px",
+    right: "4px",
+
+    width: "5px",
+    height: "5px",
+
+    backgroundColor: "#2e7d57",
+    borderRadius: "50%",
+
+    opacity: 0,
+
+    pointerEvents: "none",
+  },
+
+  dropdownWrapper: {
+    position: "absolute",
+    top: "67px",
+    right: "-40px",
+    
+
+    width: "min(420px, calc(100vw - 32px))",
+
+    maxHeight: "calc(100vh - 90px)",
+
+    zIndex: 1100,
+
+    animation: "notificationDropdownEnter 160ms ease-out",
   },
 };
 

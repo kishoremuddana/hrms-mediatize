@@ -33,60 +33,51 @@ export function AuthProvider({ children }) {
    * 5. Return user to Login.jsx
    */
 
+  const requestOTP = async (email) => {
+  const response = await authApi.post(
+    "/send-otp",
+    {
+      email,
+    }
+  );
+  return response.data;
+};
+
+
   const login = async (
-    email,
-    role,
-    password
-  ) => {
-    /*
-     * Authenticate with backend.
-     */
-    const response = await authApi.post(
-      "/login",
-      {
-        email,
-        role,
-        password,
-      }
-    );
+  email,
+  otp
+) => {
+  const response = await authApi.post(
+    "/verify-otp",
+    {
+      email,
+      otp,
+    }
+  );
 
-    const accessToken =
-      response.data.access_token;
+  const accessToken =
+    response.data.access_token;
 
-    /*
-     * Store JWT before calling /me because
-     * authApi automatically attaches this token.
-     */
-    localStorage.setItem(
-      "hrms_token",
-      accessToken
-    );
+  localStorage.setItem(
+    "hrms_token",
+    accessToken
+  );
 
-    setToken(accessToken);
+  setToken(accessToken);
 
-    /*
-     * Get authenticated user information.
-     */
-    const meResponse = await authApi.get(
-      "/me"
-    );
+  const meResponse = await authApi.get(
+    "/me"
+  );
 
-    const authenticatedUser =
-      meResponse.data;
+  const authenticatedUser =
+    meResponse.data;
 
-    /*
-     * Store authenticated user.
-     */
-    setUser(authenticatedUser);
-    setLoading(false);
+  setUser(authenticatedUser);
+  setLoading(false);
 
-    /*
-     * Return user information to Login.jsx
-     * so it can perform role-based navigation.
-     */
-    return authenticatedUser;
-  };
-
+  return authenticatedUser;
+};
   /*
    * =========================================================
    * LOGOUT
@@ -132,6 +123,74 @@ export function AuthProvider({ children }) {
       window.removeEventListener(
         "hrms:unauthorized",
         handleUnauthorized
+      );
+    };
+  }, []);
+
+
+  /*
+ * =========================================================
+ * SYNC AUTHENTICATION SESSION ACROSS TABS
+ * =========================================================
+ */
+
+  useEffect(() => {
+    const handleStorageChange = async (event) => {
+      /*
+      * We only care about changes to the JWT.
+      */
+      if (event.key !== "hrms_token") {
+        return;
+      }
+
+      /*
+      * Another tab logged out.
+      */
+      if (!event.newValue) {
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      /*
+      * Another tab logged in.
+      * Store the new token and validate it using /me.
+      */
+      setToken(event.newValue);
+      setLoading(true);
+
+      try {
+        /*
+       * Validate the new JWT with the backend.
+       */
+        const response = await authApi.get("/me");
+
+        setUser(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error(
+          "Failed to sync authentication session:",
+          error
+        );
+
+        localStorage.removeItem("hrms_token");
+
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener(
+      "storage",
+      handleStorageChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorageChange
       );
     };
   }, []);
@@ -224,6 +283,7 @@ export function AuthProvider({ children }) {
       token && user
     ),
 
+    requestOTP,
     login,
     logout,
   };

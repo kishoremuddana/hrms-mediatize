@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Search, Eye, Paperclip, FileText, ChevronLeft, ChevronRight, X, ArrowLeft, RefreshCw, Calendar } from "lucide-react";
+import {
+  Search,
+  Eye,
+  Paperclip,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ArrowLeft,
+  RefreshCw,
+  Calendar,
+  Users,
+  Briefcase,
+  ClipboardList,
+  AlertTriangle,
+  ExternalLink,
+  Filter,
+  RotateCcw,
+  UserRound,
+  FolderKanban,
+} from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
 import { getAllWorkReports } from "../services/workReportApi";
@@ -11,24 +32,27 @@ function HRWorkReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Dropdown Filter Options
+  // Filter options
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]);
 
-  // Pagination & Filter State
+  // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Filters
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Detail Modal State
+  // Detail modal
   const [selectedReport, setSelectedReport] = useState(null);
 
-  // Fetch Employees and Projects for filter dropdowns
+  // ---------------------------------------------------------
+  // Load employees and projects
+  // ---------------------------------------------------------
   useEffect(() => {
     async function loadFilterOptions() {
       try {
@@ -40,6 +64,7 @@ function HRWorkReports() {
         if (empRes.status === "fulfilled") {
           setEmployees(empRes.value.data?.items || []);
         }
+
         if (projRes.status === "fulfilled") {
           setProjects(projRes.value.data?.items || []);
         }
@@ -47,12 +72,16 @@ function HRWorkReports() {
         console.error("Failed to load filter options", err);
       }
     }
+
     loadFilterOptions();
   }, []);
 
-  // Fetch HR Work Reports with pagination & filters
+  // ---------------------------------------------------------
+  // Fetch work reports
+  // ---------------------------------------------------------
   const fetchReports = useCallback(async () => {
     setLoading(true);
+
     try {
       const params = {
         page,
@@ -64,6 +93,7 @@ function HRWorkReports() {
       };
 
       const res = await getAllWorkReports(params);
+
       setReports(res.data?.items || []);
       setTotalPages(res.data?.pages || 1);
       setTotalItems(res.data?.total || 0);
@@ -73,18 +103,29 @@ function HRWorkReports() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedEmployeeId, selectedProjectId, selectedDate, searchTerm]);
+  }, [
+    page,
+    selectedEmployeeId,
+    selectedProjectId,
+    selectedDate,
+    searchTerm,
+  ]);
 
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
-  // Handle Search Input with debounce
+  // ---------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setPage(1);
   };
 
+  // ---------------------------------------------------------
+  // Reset filters
+  // ---------------------------------------------------------
   const handleResetFilters = () => {
     setSelectedEmployeeId("");
     setSelectedProjectId("");
@@ -93,316 +134,834 @@ function HRWorkReports() {
     setPage(1);
   };
 
+  // ---------------------------------------------------------
+  // Summary calculations based on currently loaded reports
+  // ---------------------------------------------------------
+  const employeeCount = new Set(
+    reports.map((report) => report.employee_id || report.employee_code)
+  ).size;
+
+  const projectCount = new Set(
+    reports.map((report) => report.project_id || report.project_code)
+  ).size;
+
+  const blockerCount = reports.filter(
+    (report) => report.problems_faced
+  ).length;
+
+  const hasFilters =
+    selectedEmployeeId ||
+    selectedProjectId ||
+    selectedDate ||
+    searchTerm;
+
   return (
     <AppLayout title="HR Work Reports Management">
-      <div style={styles.container}>
-        <BackToDashboard to="/hr/dashboard" role="HR" icon={ArrowLeft} />
-
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Employee Work Reports</h1>
-            <p style={styles.subtitle}>
-              Monitor daily employee task submissions, project progress, and reported blockers
-            </p>
-          </div>
+      <div style={styles.page}>
+        {/* =====================================================
+            TOP NAVIGATION
+        ====================================================== */}
+        <div style={styles.topNavigation}>
+          <BackToDashboard
+            to="/hr/dashboard"
+            role="HR"
+            icon={ArrowLeft}
+          />
 
           <button
-            style={{ ...styles.secondaryNavBtn, display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
+            type="button"
             onClick={fetchReports}
             disabled={loading}
-            title="Refresh"
+            style={{
+              ...styles.refreshButton,
+              opacity: loading ? 0.65 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
           >
-            <RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh
+            <RefreshCw
+              size={15}
+              style={{
+                animation: loading ? "spin 1s linear infinite" : "none",
+              }}
+            />
+            {loading ? "Refreshing..." : "Refresh Reports"}
           </button>
         </div>
 
-        {/* Filter Controls Card */}
-        <div style={styles.filterCard}>
-          <div style={styles.filterRow}>
-            {/* Search Input */}
-            <div style={styles.searchWrapper}>
-              <Search size={16} style={styles.searchIcon} />
-              <input
-                type="text"
-                style={styles.searchInput}
-                placeholder="Search by employee name, code, project, or work description..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                aria-label="Search work reports"
-              />
+        {/* =====================================================
+            HERO SECTION
+        ====================================================== */}
+        <section style={styles.hero}>
+          <div style={styles.heroLeft}>
+            <div style={styles.eyebrow}>
+              <ClipboardList size={14} />
+              HR OPERATIONS
             </div>
 
-            {/* Employee Filter */}
-            <select
-              style={styles.select}
-              value={selectedEmployeeId}
-              onChange={(e) => {
-                setSelectedEmployeeId(e.target.value);
-                setPage(1);
-              }}
-              aria-label="Filter by employee"
-            >
-              <option value="">All Employees</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.first_name} {e.last_name} ({e.employee_code})
-                </option>
-              ))}
-            </select>
+            <h1 style={styles.pageTitle}>Employee Work Reports</h1>
 
-            {/* Project Filter */}
-            <select
-              style={styles.select}
-              value={selectedProjectId}
-              onChange={(e) => {
-                setSelectedProjectId(e.target.value);
-                setPage(1);
-              }}
-              aria-label="Filter by project"
-            >
-              <option value="">All Projects</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.project_code})
-                </option>
-              ))}
-            </select>
+            <p style={styles.pageDescription}>
+              Review daily employee submissions, monitor project activity,
+              and identify reported blockers from one workspace.
+            </p>
 
-            {/* Date Filter */}
-            <input
-              type="date"
-              style={styles.dateInput}
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setPage(1);
-              }}
-              aria-label="Filter by date"
-            />
+            <div style={styles.heroMeta}>
+              <span style={styles.metaItem}>
+                <FileText size={14} />
+                Daily submissions
+              </span>
 
-            {/* Reset Filters */}
-            {(selectedEmployeeId || selectedProjectId || selectedDate || searchTerm) && (
-              <button style={styles.resetBtn} onClick={handleResetFilters}>
+              <span style={styles.metaDivider}>•</span>
+
+              <span style={styles.metaItem}>
+                <FolderKanban size={14} />
+                Project tracking
+              </span>
+
+              <span style={styles.metaDivider}>•</span>
+
+              <span style={styles.metaItem}>
+                <AlertTriangle size={14} />
+                Blocker monitoring
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.heroVisual}>
+            <div style={styles.heroIconBox}>
+              <ClipboardList size={34} />
+            </div>
+
+            <div>
+              <div style={styles.heroVisualLabel}>REPORT CENTER</div>
+              <div style={styles.heroVisualValue}>
+                {totalItems} Reports
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            OVERVIEW STATS
+        ====================================================== */}
+        <section style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <FileText size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Reports Found</div>
+              <div style={styles.statValue}>{totalItems}</div>
+            </div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <Users size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Employees</div>
+              <div style={styles.statValue}>{employeeCount}</div>
+            </div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <Briefcase size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Projects</div>
+              <div style={styles.statValue}>{projectCount}</div>
+            </div>
+          </div>
+
+          <div style={styles.statCardWarning}>
+            <div style={styles.statIconWarning}>
+              <AlertTriangle size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Reported Blockers</div>
+              <div style={styles.statValue}>{blockerCount}</div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            FILTER WORKSPACE
+        ====================================================== */}
+        <section style={styles.workspaceCard}>
+          <div style={styles.workspaceHeader}>
+            <div>
+              <div style={styles.sectionEyebrow}>
+                <Filter size={14} />
+                REPORT FILTERS
+              </div>
+
+              <h2 style={styles.sectionTitle}>Search & Filter Reports</h2>
+
+              <p style={styles.sectionDescription}>
+                Narrow the report list by employee, project, date, or
+                keywords.
+              </p>
+            </div>
+
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                style={styles.clearFiltersButton}
+              >
+                <RotateCcw size={14} />
                 Clear Filters
               </button>
             )}
           </div>
 
-          <div style={styles.summaryBadge}>
-            Showing <strong>{reports.length}</strong> of <strong>{totalItems}</strong> reports
-          </div>
-        </div>
+          <div style={styles.filterGrid}>
+            {/* Search */}
+            <div style={styles.searchField}>
+              <label style={styles.fieldLabel}>Search</label>
 
-        {/* Desktop Table View (≥768px) */}
-        {loading ? (
-          <div style={styles.emptyState}>Loading work reports...</div>
-        ) : reports.length === 0 ? (
-          <div style={styles.emptyCard}>
-            <FileText size={40} style={{ color: "var(--text-muted)", marginBottom: "0.75rem" }} />
-            <h3 style={styles.emptyTitle}>No Work Reports Found</h3>
-            <p style={styles.emptySubtitle}>
-              No employee work reports match the specified filter criteria.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <div className="employee-desktop-table" style={styles.tableWrapper}>
-              <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Employee</th>
-                      <th style={styles.th}>Project</th>
-                      <th style={styles.th}>Report Date</th>
-                      <th style={styles.th}>Work Description</th>
-                      <th style={styles.th}>Attachment</th>
-                      <th style={styles.th}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reports.map((r) => (
-                      <tr key={r.id} style={styles.tr}>
-                        <td style={styles.td}>
-                          <div style={{ fontWeight: "700" }}>{r.employee_name || "Employee"}</div>
-                          <span style={styles.subText}>{r.employee_code}</span>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={{ fontWeight: "600" }}>{r.project_name || "Project"}</div>
-                          <span style={styles.subText}>{r.project_code}</span>
-                        </td>
-                        <td style={styles.td}>
-                          <strong>{r.report_date}</strong>
-                        </td>
-                        <td style={{ ...styles.td, maxWidth: "320px" }}>
-                          <div style={styles.descriptionSnippet}>
-                            {r.work_description}
-                          </div>
-                          {r.problems_faced && (
-                            <span style={styles.blockerBadge} title={r.problems_faced}>
-                              Blockers Reported
-                            </span>
-                          )}
-                        </td>
-                        <td style={styles.td}>
-                          {r.document_url ? (
-                            <a
-                              href={r.document_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={styles.attachmentLink}
-                            >
-                              <Paperclip size={14} /> {r.document_name || "Attachment"}
-                            </a>
-                          ) : (
-                            <span style={styles.subText}>No attachment</span>
-                          )}
-                        </td>
-                        <td style={styles.td}>
-                          <button
-                            style={styles.viewBtn}
-                            onClick={() => setSelectedReport(r)}
-                          >
-                            <Eye size={14} /> View
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div style={styles.searchBox}>
+                <Search size={17} style={styles.searchIcon} />
+
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  placeholder="Employee, project, description..."
+                  aria-label="Search work reports"
+                  style={styles.searchInput}
+                />
               </div>
             </div>
 
-            {/* Mobile Cards View (<768px) */}
-            <div className="employee-mobile-cards" style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              {reports.map((r) => (
-                <div key={r.id} style={styles.mobileCard}>
-                  <div style={styles.mobileCardHeader}>
-                    <div>
-                      <h4 style={styles.mobileCardTitle}>{r.employee_name || "Employee"}</h4>
-                      <span style={styles.subText}>
-                        {r.employee_code} &bull; {r.project_name} ({r.report_date})
-                      </span>
-                    </div>
-                    <button style={styles.viewBtn} onClick={() => setSelectedReport(r)}>
-                      <Eye size={14} /> View
-                    </button>
-                  </div>
-                  <div style={styles.mobileCardBody}>
-                    <p style={styles.mobileDesc}>{r.work_description}</p>
-                    {r.problems_faced && (
-                      <div style={styles.mobileBlocker}>
-                        <strong>Problems Faced:</strong> {r.problems_faced}
-                      </div>
-                    )}
-                    {r.document_url && (
-                      <div style={{ marginTop: "0.375rem" }}>
-                        <a href={r.document_url} target="_blank" rel="noopener noreferrer" style={styles.attachmentLink}>
-                          <Paperclip size={14} /> {r.document_name || "View Attachment"}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+            {/* Employee */}
+            <div style={styles.filterField}>
+              <label style={styles.fieldLabel}>Employee</label>
+
+              <div style={styles.selectWrapper}>
+                <UserRound size={16} style={styles.selectIcon} />
+
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => {
+                    setSelectedEmployeeId(e.target.value);
+                    setPage(1);
+                  }}
+                  aria-label="Filter by employee"
+                  style={styles.selectInput}
+                >
+                  <option value="">All Employees</option>
+
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.first_name} {employee.last_name} (
+                      {employee.employee_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={styles.paginationRow}>
-                <span style={styles.pageInfo}>
-                  Page <strong>{page}</strong> of <strong>{totalPages}</strong> ({totalItems} total)
-                </span>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button
-                    style={styles.pageBtn}
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft size={16} /> Prev
-                  </button>
-                  <button
-                    style={styles.pageBtn}
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  >
-                    Next <ChevronRight size={16} />
-                  </button>
-                </div>
+            {/* Project */}
+            <div style={styles.filterField}>
+              <label style={styles.fieldLabel}>Project</label>
+
+              <div style={styles.selectWrapper}>
+                <FolderKanban size={16} style={styles.selectIcon} />
+
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => {
+                    setSelectedProjectId(e.target.value);
+                    setPage(1);
+                  }}
+                  aria-label="Filter by project"
+                  style={styles.selectInput}
+                >
+                  <option value="">All Projects</option>
+
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name} ({project.project_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Date */}
+            <div style={styles.filterField}>
+              <label style={styles.fieldLabel}>Report Date</label>
+
+              <div style={styles.dateWrapper}>
+                <Calendar size={16} style={styles.selectIcon} />
+
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setPage(1);
+                  }}
+                  aria-label="Filter by date"
+                  style={styles.dateInput}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.filterFooter}>
+            <div style={styles.resultText}>
+              Showing{" "}
+              <strong>{reports.length}</strong> of{" "}
+              <strong>{totalItems}</strong> reports
+            </div>
+
+            {hasFilters && (
+              <div style={styles.activeFilterBadge}>
+                <Filter size={13} />
+                Filters active
               </div>
             )}
           </div>
-        )}
+        </section>
 
-        {/* HR Detailed Report Modal */}
-        {selectedReport && (
-          <div style={styles.modalOverlay} onClick={() => setSelectedReport(null)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <div>
-                  <h3 style={styles.modalTitle}>Daily Work Report Details</h3>
-                  <span style={styles.modalSub}>
-                    Submitted on {selectedReport.report_date}
-                  </span>
+        {/* =====================================================
+            REPORT CONTENT
+        ====================================================== */}
+        <section style={styles.reportSection}>
+          <div style={styles.reportSectionHeader}>
+            <div>
+              <div style={styles.sectionEyebrow}>
+                <ClipboardList size={14} />
+                REPORT DIRECTORY
+              </div>
+
+              <h2 style={styles.sectionTitle}>Submitted Work Reports</h2>
+            </div>
+
+            {!loading && reports.length > 0 && (
+              <span style={styles.pageIndicator}>
+                Page {page} of {totalPages}
+              </span>
+            )}
+          </div>
+
+          {/* Loading */}
+          {loading ? (
+            <div style={styles.loadingCard}>
+              <div style={styles.loadingSpinner}>
+                <RefreshCw size={22} />
+              </div>
+
+              <h3 style={styles.loadingTitle}>
+                Loading work reports
+              </h3>
+
+              <p style={styles.loadingText}>
+                Fetching the latest employee submissions...
+              </p>
+            </div>
+          ) : reports.length === 0 ? (
+            /* Empty */
+            <div style={styles.emptyCard}>
+              <div style={styles.emptyIcon}>
+                <FileText size={28} />
+              </div>
+
+              <h3 style={styles.emptyTitle}>
+                No Work Reports Found
+              </h3>
+
+              <p style={styles.emptySubtitle}>
+                No employee work reports match the specified filter
+                criteria.
+              </p>
+
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  style={styles.emptyAction}
+                >
+                  <RotateCcw size={14} />
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* =================================================
+                  DESKTOP TABLE
+              ================================================== */}
+              <div
+                className="employee-desktop-table"
+                style={styles.tableCard}
+              >
+                <div style={styles.tableScroll}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.tableHead}>Employee</th>
+                        <th style={styles.tableHead}>Project</th>
+                        <th style={styles.tableHead}>Report Date</th>
+                        <th style={styles.tableHead}>Work Summary</th>
+                        <th style={styles.tableHead}>Attachment</th>
+                        <th style={styles.tableHead}>Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {reports.map((report) => (
+                        <tr key={report.id} style={styles.tableRow}>
+                          {/* Employee */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.employeeCell}>
+                              <div style={styles.avatar}>
+                                {(
+                                  report.employee_name ||
+                                  "Employee"
+                                )
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </div>
+
+                              <div>
+                                <div style={styles.primaryText}>
+                                  {report.employee_name ||
+                                    "Employee"}
+                                </div>
+
+                                <div style={styles.secondaryText}>
+                                  {report.employee_code ||
+                                    "No code"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Project */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.projectCell}>
+                              <div style={styles.projectIcon}>
+                                <Briefcase size={15} />
+                              </div>
+
+                              <div>
+                                <div style={styles.primaryText}>
+                                  {report.project_name ||
+                                    "Project"}
+                                </div>
+
+                                <div style={styles.secondaryText}>
+                                  {report.project_code ||
+                                    "No code"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Date */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.dateCell}>
+                              <Calendar size={14} />
+                              <strong>
+                                {report.report_date}
+                              </strong>
+                            </div>
+                          </td>
+
+                          {/* Work description */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.descriptionCell}>
+                              {report.work_description}
+
+                              {report.problems_faced && (
+                                <span style={styles.blockerBadge}>
+                                  <AlertTriangle size={11} />
+                                  Blocker reported
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Attachment */}
+                          <td style={styles.tableCell}>
+                            {report.document_url ? (
+                              <a
+                                href={report.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={styles.attachmentLink}
+                              >
+                                <Paperclip size={14} />
+                                <span>
+                                  {report.document_name ||
+                                    "Attachment"}
+                                </span>
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : (
+                              <span style={styles.noAttachment}>
+                                No attachment
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Action */}
+                          <td style={styles.tableCell}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedReport(report)
+                              }
+                              style={styles.viewButton}
+                            >
+                              <Eye size={14} />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <button style={styles.closeBtn} onClick={() => setSelectedReport(null)} aria-label="Close">
+              </div>
+
+              {/* =================================================
+                  MOBILE CARDS
+              ================================================== */}
+              <div
+                className="employee-mobile-cards"
+                style={styles.mobileList}
+              >
+                {reports.map((report) => (
+                  <article
+                    key={report.id}
+                    style={styles.mobileCard}
+                  >
+                    <div style={styles.mobileCardTop}>
+                      <div style={styles.mobileIdentity}>
+                        <div style={styles.mobileAvatar}>
+                          {(
+                            report.employee_name ||
+                            "Employee"
+                          )
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+
+                        <div>
+                          <h3 style={styles.mobileEmployeeName}>
+                            {report.employee_name || "Employee"}
+                          </h3>
+
+                          <p style={styles.mobileEmployeeCode}>
+                            {report.employee_code || "No code"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedReport(report)
+                        }
+                        style={styles.mobileViewButton}
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </div>
+
+                    <div style={styles.mobileProject}>
+                      <FolderKanban size={15} />
+
+                      <span>
+                        {report.project_name || "Project"}
+                      </span>
+
+                      <span style={styles.mobileDot}>•</span>
+
+                      <span>
+                        {report.report_date}
+                      </span>
+                    </div>
+
+                    <div style={styles.mobileDescription}>
+                      {report.work_description}
+                    </div>
+
+                    {report.problems_faced && (
+                      <div style={styles.mobileBlocker}>
+                        <AlertTriangle size={14} />
+
+                        <div>
+                          <strong>Problems Faced</strong>
+                          <p style={styles.mobileBlockerText}>
+                            {report.problems_faced}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {report.document_url && (
+                      <a
+                        href={report.document_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={styles.mobileAttachment}
+                      >
+                        <Paperclip size={14} />
+                        {report.document_name ||
+                          "View Attachment"}
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </article>
+                ))}
+              </div>
+
+              {/* =================================================
+                  PAGINATION
+              ================================================== */}
+              {totalPages > 1 && (
+                <div style={styles.pagination}>
+                  <div style={styles.paginationInfo}>
+                    Showing page <strong>{page}</strong> of{" "}
+                    <strong>{totalPages}</strong>
+                    <span style={styles.paginationTotal}>
+                      ({totalItems} total reports)
+                    </span>
+                  </div>
+
+                  <div style={styles.paginationActions}>
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() =>
+                        setPage((currentPage) =>
+                          Math.max(1, currentPage - 1)
+                        )
+                      }
+                      style={{
+                        ...styles.paginationButton,
+                        opacity: page <= 1 ? 0.45 : 1,
+                        cursor:
+                          page <= 1
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                      Previous
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={page >= totalPages}
+                      onClick={() =>
+                        setPage((currentPage) =>
+                          Math.min(
+                            totalPages,
+                            currentPage + 1
+                          )
+                        )
+                      }
+                      style={{
+                        ...styles.paginationButton,
+                        opacity:
+                          page >= totalPages ? 0.45 : 1,
+                        cursor:
+                          page >= totalPages
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      Next
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* =====================================================
+            REPORT DETAILS MODAL
+        ====================================================== */}
+        {selectedReport && (
+          <div
+            style={styles.modalOverlay}
+            onClick={() => setSelectedReport(null)}
+          >
+            <div
+              style={styles.modal}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={styles.modalHeader}>
+                <div style={styles.modalHeaderIdentity}>
+                  <div style={styles.modalIcon}>
+                    <FileText size={20} />
+                  </div>
+
+                  <div>
+                    <div style={styles.modalEyebrow}>
+                      WORK REPORT
+                    </div>
+
+                    <h3 style={styles.modalTitle}>
+                      Daily Work Report Details
+                    </h3>
+
+                    <div style={styles.modalSub}>
+                      Submitted on{" "}
+                      {selectedReport.report_date}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  style={styles.closeButton}
+                  aria-label="Close"
+                >
                   <X size={18} />
                 </button>
               </div>
 
+              {/* Modal Body */}
               <div style={styles.modalBody}>
+                {/* Employee / Project */}
                 <div style={styles.detailGrid}>
-                  <div style={styles.detailRow}>
-                    <label style={styles.detailLabel}>Employee</label>
-                    <div style={styles.detailValue}>
-                      {selectedReport.employee_name}{" "}
-                      <span style={styles.subText}>({selectedReport.employee_code})</span>
+                  <div style={styles.detailCard}>
+                    <div style={styles.detailCardHeader}>
+                      <UserRound size={15} />
+                      Employee
+                    </div>
+
+                    <div style={styles.detailMainValue}>
+                      {selectedReport.employee_name ||
+                        "Employee"}
+                    </div>
+
+                    <div style={styles.detailSubValue}>
+                      {selectedReport.employee_code ||
+                        "No employee code"}
                     </div>
                   </div>
 
-                  <div style={styles.detailRow}>
-                    <label style={styles.detailLabel}>Project</label>
-                    <div style={styles.detailValue}>
-                      {selectedReport.project_name}{" "}
-                      <span style={styles.subText}>({selectedReport.project_code})</span>
+                  <div style={styles.detailCard}>
+                    <div style={styles.detailCardHeader}>
+                      <FolderKanban size={15} />
+                      Project
+                    </div>
+
+                    <div style={styles.detailMainValue}>
+                      {selectedReport.project_name ||
+                        "Project"}
+                    </div>
+
+                    <div style={styles.detailSubValue}>
+                      {selectedReport.project_code ||
+                        "No project code"}
                     </div>
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Work Description</label>
-                  <div style={styles.detailTextContent}>
-                    {selectedReport.work_description}
+                {/* Date */}
+                <div style={styles.detailCard}>
+                  <div style={styles.detailCardHeader}>
+                    <Calendar size={15} />
+                    Report Date
+                  </div>
+
+                  <div style={styles.detailMainValue}>
+                    {selectedReport.report_date}
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Problems Faced</label>
-                  <div style={styles.detailTextContent}>
-                    {selectedReport.problems_faced ? selectedReport.problems_faced : "None reported."}
+                {/* Work Description */}
+                <div style={styles.contentSection}>
+                  <div style={styles.contentSectionHeader}>
+                    <FileText size={15} />
+                    <span>Work Description</span>
+                  </div>
+
+                  <div style={styles.contentBox}>
+                    {selectedReport.work_description ||
+                      "No work description provided."}
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Supporting Document</label>
-                  <div>
-                    {selectedReport.document_url ? (
-                      <a
-                        href={selectedReport.document_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={styles.attachmentButton}
-                      >
-                        <Paperclip size={16} /> Open / Download {selectedReport.document_name || "Attachment"}
-                      </a>
-                    ) : (
-                      <span style={styles.subText}>No attachment uploaded</span>
-                    )}
+                {/* Problems */}
+                <div style={styles.contentSection}>
+                  <div style={styles.contentSectionHeader}>
+                    <AlertTriangle size={15} />
+                    <span>Problems Faced</span>
                   </div>
+
+                  <div
+                    style={{
+                      ...styles.contentBox,
+                      ...(selectedReport.problems_faced
+                        ? styles.problemContentBox
+                        : {}),
+                    }}
+                  >
+                    {selectedReport.problems_faced ||
+                      "None reported."}
+                  </div>
+                </div>
+
+                {/* Supporting Document */}
+                <div style={styles.contentSection}>
+                  <div style={styles.contentSectionHeader}>
+                    <Paperclip size={15} />
+                    <span>Supporting Document</span>
+                  </div>
+
+                  {selectedReport.document_url ? (
+                    <a
+                      href={selectedReport.document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.documentButton}
+                    >
+                      <Paperclip size={16} />
+
+                      <span>
+                        Open / Download{" "}
+                        {selectedReport.document_name ||
+                          "Attachment"}
+                      </span>
+
+                      <ExternalLink size={14} />
+                    </a>
+                  ) : (
+                    <div style={styles.noDocument}>
+                      No attachment uploaded
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Modal Footer */}
               <div style={styles.modalFooter}>
-                <button style={styles.secondaryBtn} onClick={() => setSelectedReport(null)}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  style={styles.modalCloseButton}
+                >
                   Close
                 </button>
               </div>
@@ -410,393 +969,1104 @@ function HRWorkReports() {
           </div>
         )}
       </div>
+
+      {/* =======================================================
+          RESPONSIVE + ANIMATION STYLES
+      ======================================================== */}
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .employee-mobile-cards {
+            display: none !important;
+          }
+
+          .employee-desktop-table {
+            display: block !important;
+          }
+
+          @media (max-width: 900px) {
+            .employee-desktop-table {
+              display: block !important;
+            }
+          }
+
+          @media (max-width: 767px) {
+            .employee-desktop-table {
+              display: none !important;
+            }
+
+            .employee-mobile-cards {
+              display: flex !important;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .hr-work-report-page {
+              padding-left: 0;
+              padding-right: 0;
+            }
+          }
+        `}
+      </style>
     </AppLayout>
   );
 }
 
+// =============================================================
+// STYLES
+// =============================================================
+
 const styles = {
-  container: {
-    padding: "0 0 2.5rem 0",
+  page: {
+    padding: "0 0 40px",
+    color: "#17251d",
   },
-  header: {
-    marginBottom: "1.5rem",
-    paddingBottom: "1rem",
-    borderBottom: "1px solid var(--border-color)",
+
+  topNavigation: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: "12px",
+    marginBottom: "20px",
     flexWrap: "wrap",
-    gap: "1rem",
   },
-  title: {
-    fontSize: "2rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: "0.95rem",
-    color: "var(--text-secondary)",
-    marginTop: "0.25rem",
-  },
-  secondaryNavBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  filterCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.25rem",
-    marginBottom: "1.5rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  filterRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "0.875rem",
+
+  refreshButton: {
+    display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    border: "1px solid #cfe0d5",
+    background: "#ffffff",
+    color: "#165b3a",
+    borderRadius: "10px",
+    padding: "9px 14px",
+    fontSize: "13px",
+    fontWeight: "700",
+    transition: "all 0.2s ease",
   },
-  searchWrapper: {
+
+  hero: {
     position: "relative",
-    flex: "1 1 280px",
-    display: "flex",
-    alignItems: "center",
-  },
-  searchIcon: {
-    position: "absolute",
-    left: "0.75rem",
-    color: "var(--text-muted)",
-    pointerEvents: "none",
-  },
-  searchInput: {
-    width: "100%",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.5rem 0.75rem 0.5rem 2.25rem",
-    fontSize: "0.875rem",
-    outline: "none",
-  },
-  select: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.5rem 0.75rem",
-    fontSize: "0.875rem",
-    outline: "none",
-    flex: "1 1 160px",
-  },
-  dateInput: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.5rem 0.75rem",
-    fontSize: "0.875rem",
-    outline: "none",
-    width: "150px",
-  },
-  resetBtn: {
-    backgroundColor: "transparent",
-    color: "var(--danger-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 0.875rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  summaryBadge: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
-  },
-  tableWrapper: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    overflowX: "auto",
-    maxWidth: "100%",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    textAlign: "left",
-    fontSize: "0.9rem",
-  },
-  th: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    padding: "0.875rem 1rem",
-    fontWeight: "600",
-    fontSize: "0.8rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    borderBottom: "1px solid var(--border-color)",
-  },
-  tr: {
-    borderBottom: "1px solid var(--border-color)",
-  },
-  td: {
-    padding: "0.875rem 1rem",
-    color: "var(--text-primary)",
-  },
-  subText: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
-  },
-  descriptionSnippet: {
     overflow: "hidden",
-    textOverflow: "ellipsis",
-    display: "-webkit-box",
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: "vertical",
-    lineHeight: "1.4",
-  },
-  blockerBadge: {
-    display: "inline-block",
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
-    color: "var(--danger-color)",
-    fontSize: "0.7rem",
-    fontWeight: "700",
-    padding: "0.1rem 0.4rem",
-    borderRadius: "var(--radius-sm)",
-    marginTop: "0.25rem",
-  },
-  attachmentLink: {
-    color: "var(--primary-color)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.25rem",
-  },
-  viewBtn: {
-    backgroundColor: "transparent",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.35rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.3rem",
-  },
-  emptyState: {
-    padding: "3rem",
-    textAlign: "center",
-    color: "var(--text-muted)",
-  },
-  emptyCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "3.5rem 1.5rem",
-    textAlign: "center",
-  },
-  emptyTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: "0 0 0.375rem 0",
-  },
-  emptySubtitle: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    margin: 0,
-  },
-  mobileCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1rem 1.25rem",
-  },
-  mobileCardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.625rem",
-    marginBottom: "0.625rem",
-  },
-  mobileCardTitle: {
-    fontSize: "1rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-  },
-  mobileCardBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.375rem",
-  },
-  mobileDesc: {
-    fontSize: "0.875rem",
-    color: "var(--text-primary)",
-    margin: 0,
-    lineHeight: "1.4",
-  },
-  mobileBlocker: {
-    fontSize: "0.8rem",
-    color: "var(--danger-color)",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    padding: "0.375rem 0.625rem",
-    borderRadius: "var(--radius-sm)",
-  },
-  paginationRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: "1.25rem",
-    padding: "0.5rem 0",
+    gap: "24px",
+    background: "linear-gradient(135deg, #124d31 0%, #1f6b43 100%)",
+    borderRadius: "18px",
+    padding: "30px",
+    marginBottom: "18px",
+    boxShadow: "0 12px 30px rgba(18, 77, 49, 0.14)",
   },
-  pageInfo: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
+
+  heroLeft: {
+    minWidth: 0,
+    flex: 1,
   },
-  pageBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.375rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    cursor: "pointer",
+
+  eyebrow: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.25rem",
+    gap: "7px",
+    color: "#d9f2e2",
+    fontSize: "11px",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+    marginBottom: "9px",
   },
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
-    backdropFilter: "blur(4px)",
+
+  pageTitle: {
+    margin: 0,
+    color: "#ffffff",
+    fontSize: "clamp(1.7rem, 3vw, 2.45rem)",
+    lineHeight: 1.15,
+    fontWeight: "800",
+    letterSpacing: "-0.02em",
+  },
+
+  pageDescription: {
+    maxWidth: "720px",
+    margin: "10px 0 0",
+    color: "#d8eadf",
+    fontSize: "14px",
+    lineHeight: 1.65,
+  },
+
+  heroMeta: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "9px",
+    marginTop: "18px",
+  },
+
+  metaItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#e4f2e9",
+    fontSize: "11px",
+    fontWeight: "600",
+  },
+
+  metaDivider: {
+    color: "#8fbea4",
+    fontSize: "11px",
+  },
+
+  heroVisual: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    minWidth: "190px",
+    padding: "15px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.09)",
+    border: "1px solid rgba(255,255,255,0.16)",
+  },
+
+  heroIconBox: {
+    width: "50px",
+    height: "50px",
+    borderRadius: "13px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1100,
-    padding: "1rem",
+    background: "rgba(255,255,255,0.13)",
+    color: "#ffffff",
+    flexShrink: 0,
   },
+
+  heroVisualLabel: {
+    color: "#a9d2b8",
+    fontSize: "9px",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+  },
+
+  heroVisualValue: {
+    marginTop: "3px",
+    color: "#ffffff",
+    fontSize: "17px",
+    fontWeight: "800",
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+    gap: "12px",
+    marginBottom: "18px",
+  },
+
+  statCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "17px",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "14px",
+    boxShadow: "0 4px 14px rgba(18, 77, 49, 0.04)",
+  },
+
+  statCardWarning: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "17px",
+    background: "#fffdf7",
+    border: "1px solid #eadfbe",
+    borderRadius: "14px",
+    boxShadow: "0 4px 14px rgba(120, 90, 20, 0.04)",
+  },
+
+  statIcon: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "11px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#e8f4ed",
+    color: "#17613d",
+    flexShrink: 0,
+  },
+
+  statIconWarning: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "11px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f9efd5",
+    color: "#8a681f",
+    flexShrink: 0,
+  },
+
+  statLabel: {
+    color: "#718078",
+    fontSize: "11px",
+    fontWeight: "700",
+    marginBottom: "3px",
+  },
+
+  statValue: {
+    color: "#183026",
+    fontSize: "21px",
+    fontWeight: "800",
+  },
+
+  workspaceCard: {
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "16px",
+    marginBottom: "18px",
+    overflow: "hidden",
+    boxShadow: "0 5px 18px rgba(18, 77, 49, 0.04)",
+  },
+
+  workspaceHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "16px",
+    padding: "21px",
+    borderBottom: "1px solid #e6eee8",
+    flexWrap: "wrap",
+  },
+
+  sectionEyebrow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#27714c",
+    fontSize: "10px",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+    marginBottom: "6px",
+  },
+
+  sectionTitle: {
+    margin: 0,
+    color: "#1b2e24",
+    fontSize: "17px",
+    fontWeight: "800",
+  },
+
+  sectionDescription: {
+    margin: "5px 0 0",
+    color: "#77847d",
+    fontSize: "12px",
+    lineHeight: 1.5,
+  },
+
+  clearFiltersButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    border: "1px solid #d8e4dc",
+    background: "#f8fbf9",
+    color: "#315c46",
+    borderRadius: "9px",
+    padding: "8px 11px",
+    fontSize: "12px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  filterGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "minmax(250px, 1.7fr) repeat(3, minmax(160px, 1fr))",
+    gap: "12px",
+    padding: "18px 21px",
+  },
+
+  searchField: {
+    minWidth: 0,
+  },
+
+  filterField: {
+    minWidth: 0,
+  },
+
+  fieldLabel: {
+    display: "block",
+    marginBottom: "6px",
+    color: "#52625a",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  searchBox: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  searchIcon: {
+    position: "absolute",
+    left: "12px",
+    color: "#829087",
+    pointerEvents: "none",
+  },
+
+  searchInput: {
+    width: "100%",
+    height: "40px",
+    boxSizing: "border-box",
+    padding: "0 12px 0 36px",
+    border: "1px solid #d6e2da",
+    borderRadius: "9px",
+    background: "#fbfdfc",
+    color: "#20332a",
+    fontSize: "12px",
+    outline: "none",
+  },
+
+  selectWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  selectIcon: {
+    position: "absolute",
+    left: "11px",
+    color: "#6d7e74",
+    pointerEvents: "none",
+    zIndex: 1,
+  },
+
+  selectInput: {
+    width: "100%",
+    height: "40px",
+    boxSizing: "border-box",
+    padding: "0 10px 0 34px",
+    border: "1px solid #d6e2da",
+    borderRadius: "9px",
+    background: "#fbfdfc",
+    color: "#20332a",
+    fontSize: "12px",
+    outline: "none",
+  },
+
+  dateWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  dateInput: {
+    width: "100%",
+    height: "40px",
+    boxSizing: "border-box",
+    padding: "0 10px 0 34px",
+    border: "1px solid #d6e2da",
+    borderRadius: "9px",
+    background: "#fbfdfc",
+    color: "#20332a",
+    fontSize: "12px",
+    outline: "none",
+  },
+
+  filterFooter: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    padding: "12px 21px",
+    background: "#f8fbf9",
+    borderTop: "1px solid #e6eee8",
+    flexWrap: "wrap",
+  },
+
+  resultText: {
+    color: "#64736b",
+    fontSize: "11px",
+  },
+
+  activeFilterBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#17613d",
+    background: "#e7f3eb",
+    border: "1px solid #cce2d3",
+    padding: "5px 9px",
+    borderRadius: "999px",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  reportSection: {
+    marginTop: "4px",
+  },
+
+  reportSectionHeader: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: "15px",
+    marginBottom: "11px",
+    flexWrap: "wrap",
+  },
+
+  pageIndicator: {
+    color: "#65746c",
+    background: "#f4f8f5",
+    border: "1px solid #dce7df",
+    padding: "6px 10px",
+    borderRadius: "8px",
+    fontSize: "10px",
+    fontWeight: "700",
+  },
+
+  loadingCard: {
+    minHeight: "280px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "16px",
+  },
+
+  loadingSpinner: {
+    width: "46px",
+    height: "46px",
+    borderRadius: "13px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#e8f4ed",
+    color: "#17613d",
+    animation: "spin 1.2s linear infinite",
+  },
+
+  loadingTitle: {
+    margin: "13px 0 4px",
+    color: "#25382e",
+    fontSize: "15px",
+    fontWeight: "800",
+  },
+
+  loadingText: {
+    margin: 0,
+    color: "#78857e",
+    fontSize: "12px",
+  },
+
+  emptyCard: {
+    minHeight: "280px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    padding: "35px 20px",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "16px",
+  },
+
+  emptyIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#edf5ef",
+    color: "#337452",
+  },
+
+  emptyTitle: {
+    margin: "13px 0 5px",
+    color: "#263a30",
+    fontSize: "16px",
+    fontWeight: "800",
+  },
+
+  emptySubtitle: {
+    maxWidth: "430px",
+    margin: 0,
+    color: "#78857e",
+    fontSize: "12px",
+    lineHeight: 1.55,
+  },
+
+  emptyAction: {
+    marginTop: "14px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    border: "1px solid #cfe0d5",
+    background: "#f6faf7",
+    color: "#17613d",
+    borderRadius: "9px",
+    padding: "8px 12px",
+    fontSize: "12px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  tableCard: {
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "16px",
+    overflow: "hidden",
+    boxShadow: "0 5px 18px rgba(18, 77, 49, 0.04)",
+  },
+
+  tableScroll: {
+    width: "100%",
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    minWidth: "980px",
+    borderCollapse: "collapse",
+    textAlign: "left",
+    fontSize: "12px",
+  },
+
+  tableHead: {
+    padding: "12px 14px",
+    background: "#f3f8f5",
+    color: "#5b6d63",
+    borderBottom: "1px solid #dfe9e2",
+    fontSize: "10px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: "0.07em",
+    whiteSpace: "nowrap",
+  },
+
+  tableRow: {
+    borderBottom: "1px solid #edf2ee",
+  },
+
+  tableCell: {
+    padding: "14px",
+    color: "#26382f",
+    verticalAlign: "middle",
+  },
+
+  employeeCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: "175px",
+  },
+
+  avatar: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: "#e5f2e9",
+    color: "#17613d",
+    fontSize: "12px",
+    fontWeight: "800",
+  },
+
+  primaryText: {
+    color: "#26382f",
+    fontSize: "12px",
+    fontWeight: "800",
+    lineHeight: 1.35,
+  },
+
+  secondaryText: {
+    marginTop: "2px",
+    color: "#829087",
+    fontSize: "10px",
+  },
+
+  projectCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "9px",
+    minWidth: "155px",
+  },
+
+  projectIcon: {
+    width: "30px",
+    height: "30px",
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f0f5f2",
+    color: "#397254",
+    flexShrink: 0,
+  },
+
+  dateCell: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#4b5c53",
+    whiteSpace: "nowrap",
+  },
+
+  descriptionCell: {
+    maxWidth: "290px",
+    lineHeight: 1.5,
+    color: "#405148",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: "6px",
+  },
+
+  blockerBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "4px 7px",
+    borderRadius: "6px",
+    background: "#fff5dd",
+    border: "1px solid #ead9a9",
+    color: "#80611e",
+    fontSize: "9px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
+  },
+
+  attachmentLink: {
+    maxWidth: "170px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#17613d",
+    fontSize: "10px",
+    fontWeight: "700",
+    textDecoration: "none",
+  },
+
+  noAttachment: {
+    color: "#9aa59f",
+    fontSize: "10px",
+  },
+
+  viewButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    padding: "7px 10px",
+    borderRadius: "8px",
+    border: "1px solid #cfe0d5",
+    background: "#f7faf8",
+    color: "#17613d",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
+  mobileList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+
+  mobileCard: {
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "14px",
+    padding: "15px",
+    boxShadow: "0 4px 13px rgba(18, 77, 49, 0.04)",
+  },
+
+  mobileCardTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "10px",
+  },
+
+  mobileIdentity: {
+    display: "flex",
+    alignItems: "center",
+    gap: "9px",
+    minWidth: 0,
+  },
+
+  mobileAvatar: {
+    width: "37px",
+    height: "37px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: "#e5f2e9",
+    color: "#17613d",
+    fontSize: "12px",
+    fontWeight: "800",
+  },
+
+  mobileEmployeeName: {
+    margin: 0,
+    color: "#26382f",
+    fontSize: "13px",
+    fontWeight: "800",
+  },
+
+  mobileEmployeeCode: {
+    margin: "2px 0 0",
+    color: "#829087",
+    fontSize: "10px",
+  },
+
+  mobileViewButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    flexShrink: 0,
+    padding: "7px 9px",
+    borderRadius: "8px",
+    border: "1px solid #cfe0d5",
+    background: "#f7faf8",
+    color: "#17613d",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  mobileProject: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
+    marginTop: "13px",
+    paddingTop: "11px",
+    borderTop: "1px solid #edf2ee",
+    color: "#587067",
+    fontSize: "10px",
+    fontWeight: "700",
+  },
+
+  mobileDot: {
+    color: "#a2aea7",
+  },
+
+  mobileDescription: {
+    marginTop: "11px",
+    color: "#43554c",
+    fontSize: "12px",
+    lineHeight: 1.55,
+  },
+
+  mobileBlocker: {
+    marginTop: "10px",
+    padding: "10px",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    borderRadius: "9px",
+    background: "#fff8e8",
+    border: "1px solid #ead9aa",
+    color: "#80611e",
+    fontSize: "10px",
+    lineHeight: 1.45,
+  },
+
+  mobileBlockerText: {
+    margin: "3px 0 0",
+    color: "#80611e",
+    fontSize: "10px",
+    lineHeight: 1.45,
+  },
+
+  mobileAttachment: {
+    marginTop: "10px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#17613d",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  pagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginTop: "13px",
+    padding: "13px 2px",
+    flexWrap: "wrap",
+  },
+
+  paginationInfo: {
+    color: "#68776f",
+    fontSize: "11px",
+  },
+
+  paginationTotal: {
+    marginLeft: "5px",
+    color: "#9aa59f",
+  },
+
+  paginationActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+  },
+
+  paginationButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    border: "1px solid #d5e1d9",
+    background: "#ffffff",
+    color: "#345448",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  // ===========================================================
+  // MODAL
+  // ===========================================================
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1100,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    background: "rgba(10, 28, 19, 0.62)",
+    backdropFilter: "blur(5px)",
+  },
+
   modal: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-xl)",
-    width: "min(92vw, 600px)",
+    width: "min(94vw, 680px)",
     maxHeight: "calc(100vh - 32px)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    boxShadow: "var(--shadow-overlay)",
+    background: "#ffffff",
+    border: "1px solid #dce7df",
+    borderRadius: "17px",
+    boxShadow: "0 25px 70px rgba(0, 0, 0, 0.22)",
   },
+
   modalHeader: {
-    padding: "1.25rem 1.5rem",
-    borderBottom: "1px solid var(--border-color)",
+    flexShrink: 0,
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "var(--bg-surface-elevated)",
+    justifyContent: "space-between",
+    gap: "14px",
+    padding: "17px 19px",
+    background: "#f4f9f6",
+    borderBottom: "1px solid #dfe9e2",
   },
+
+  modalHeaderIdentity: {
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    minWidth: 0,
+  },
+
+  modalIcon: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "11px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: "#dceee3",
+    color: "#17613d",
+  },
+
+  modalEyebrow: {
+    color: "#397254",
+    fontSize: "9px",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+    marginBottom: "3px",
+  },
+
   modalTitle: {
-    fontSize: "1.1rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
     margin: 0,
+    color: "#1d3027",
+    fontSize: "15px",
+    fontWeight: "800",
   },
+
   modalSub: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
+    marginTop: "3px",
+    color: "#7b8881",
+    fontSize: "10px",
   },
-  closeBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
+
+  closeButton: {
+    width: "34px",
+    height: "34px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    border: "1px solid #d6e2da",
+    borderRadius: "9px",
+    background: "#ffffff",
+    color: "#607168",
     cursor: "pointer",
-    padding: "0.375rem",
   },
+
   modalBody: {
-    padding: "1.5rem",
+    flex: 1,
+    minHeight: 0,
     overflowY: "auto",
+    padding: "18px",
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "12px",
   },
+
   detailGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "1rem",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+    gap: "10px",
   },
-  detailRow: {
+
+  detailCard: {
+    padding: "13px",
+    borderRadius: "11px",
+    border: "1px solid #dfe9e2",
+    background: "#fbfdfc",
+  },
+
+  detailCardHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#397254",
+    fontSize: "9px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+  },
+
+  detailMainValue: {
+    marginTop: "8px",
+    color: "#24382e",
+    fontSize: "13px",
+    fontWeight: "800",
+    lineHeight: 1.4,
+  },
+
+  detailSubValue: {
+    marginTop: "2px",
+    color: "#85918b",
+    fontSize: "10px",
+  },
+
+  contentSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.375rem",
+    gap: "7px",
   },
-  detailLabel: {
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    color: "var(--text-muted)",
-  },
-  detailValue: {
-    fontSize: "0.95rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-  },
-  detailTextContent: {
-    fontSize: "0.9rem",
-    color: "var(--text-primary)",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "0.875rem",
-    whiteSpace: "pre-wrap",
-    lineHeight: "1.5",
-  },
-  attachmentButton: {
-    display: "inline-flex",
+
+  contentSectionHeader: {
+    display: "flex",
     alignItems: "center",
-    gap: "0.375rem",
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 0.875rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    textDecoration: "none",
+    gap: "6px",
+    color: "#3c594a",
+    fontSize: "10px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: "0.07em",
   },
+
+  contentBox: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #dfe9e2",
+    background: "#f8fbf9",
+    color: "#43554c",
+    fontSize: "12px",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+  },
+
+  problemContentBox: {
+    background: "#fff9eb",
+    border: "1px solid #ead9aa",
+    color: "#765b22",
+  },
+
+  documentButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "fit-content",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    padding: "10px 12px",
+    borderRadius: "9px",
+    border: "1px solid #cfe0d5",
+    background: "#f5faf7",
+    color: "#17613d",
+    textDecoration: "none",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  noDocument: {
+    padding: "11px 12px",
+    borderRadius: "9px",
+    border: "1px dashed #d8e2dc",
+    color: "#89958e",
+    background: "#fafcfb",
+    fontSize: "11px",
+  },
+
   modalFooter: {
-    padding: "1rem 1.5rem",
-    borderTop: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface-elevated)",
+    flexShrink: 0,
     display: "flex",
     justifyContent: "flex-end",
+    padding: "12px 18px",
+    borderTop: "1px solid #dfe9e2",
+    background: "#f8fbf9",
   },
-  secondaryBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
+
+  modalCloseButton: {
+    border: "1px solid #cfe0d5",
+    background: "#ffffff",
+    color: "#315c46",
+    borderRadius: "9px",
+    padding: "8px 15px",
+    fontSize: "11px",
+    fontWeight: "800",
     cursor: "pointer",
   },
 };

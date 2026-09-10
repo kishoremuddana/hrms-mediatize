@@ -50,7 +50,8 @@ export const getAllLeaves = (params) => leaveApi.get("/leaves", { params });
 export const getLeaveDetails = (id) => leaveApi.get(`/leaves/${id}`);
 export const approveLeave = (id, data) => leaveApi.patch(`/leaves/${id}/approve`, data);
 export const rejectLeave = (id, data) => leaveApi.patch(`/leaves/${id}/reject`, data);
-
+export const revokeLeave = (leaveId, data) =>
+  leaveApi.put(`/leaves/${leaveId}/revoke`, data);
 export const getEmployeeBalances = (employeeId, params) => leaveApi.get(`/leave-balances/${employeeId}`, { params });
 export const updateEmployeeBalance = (employeeId, leaveTypeId, data, params) => leaveApi.put(`/leave-balances/${employeeId}/${leaveTypeId}`, data, { params });
 

@@ -1,14 +1,34 @@
-import React, { useEffect, useState } from "react";
-import { Check, ArrowLeft, ArrowRight } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock3,
+  LogIn,
+  LogOut,
+  RefreshCw,
+  SlidersHorizontal,
+  Timer,
+  UserCheck,
+  X,
+} from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
+
 import {
   checkIn,
   checkOut,
   getMyAttendanceHistory,
   getTodayAttendance,
 } from "../services/attendanceApi";
-import { showSuccess, showError } from "../../shared/utils/toast";
+
+import {
+  showSuccess,
+  showError,
+} from "../../shared/utils/toast";
 
 export default function Attendance() {
   const [todayStatus, setTodayStatus] = useState({
@@ -16,12 +36,15 @@ export default function Attendance() {
     has_checked_out: false,
     attendance: null,
   });
+
   const [actionLoading, setActionLoading] = useState(false);
 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const limit = 20;
+
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -29,30 +52,61 @@ export default function Attendance() {
   const [toDate, setToDate] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  const [mobileFiltersOpen, setMobileFiltersOpen] =
+    useState(false);
+
+  /* ============================================================
+     TODAY
+  ============================================================ */
+
   const fetchToday = async () => {
     try {
       const res = await getTodayAttendance();
       setTodayStatus(res.data);
     } catch (err) {
-      console.error("Failed to load today's attendance status:", err);
+      console.error(
+        "Failed to load today's attendance status:",
+        err
+      );
     }
   };
 
+  /* ============================================================
+     HISTORY
+  ============================================================ */
+
   const fetchHistory = async () => {
     setLoading(true);
+
     try {
-      const params = { page, limit };
-      if (fromDate) params.from_date = fromDate;
-      if (toDate) params.to_date = toDate;
-      if (statusFilter) params.status = statusFilter;
+      const params = {
+        page,
+        limit,
+      };
+
+      if (fromDate) {
+        params.from_date = fromDate;
+      }
+
+      if (toDate) {
+        params.to_date = toDate;
+      }
+
+      if (statusFilter) {
+        params.status = statusFilter;
+      }
 
       const res = await getMyAttendanceHistory(params);
+
       setHistory(res.data.items || []);
       setPage(res.data.page || 1);
       setTotalPages(res.data.total_pages || 1);
       setTotal(res.data.total || 0);
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to load attendance history.");
+      showError(
+        err.response?.data?.detail ||
+          "Failed to load attendance history."
+      );
     } finally {
       setLoading(false);
     }
@@ -66,36 +120,63 @@ export default function Attendance() {
     fetchHistory();
   }, [page, fromDate, toDate, statusFilter]);
 
+  /* ============================================================
+     CHECK IN
+  ============================================================ */
+
   const handleCheckIn = async () => {
     setActionLoading(true);
+
     try {
       await checkIn();
+
       showSuccess("Checked in successfully!");
+
       await fetchToday();
       await fetchHistory();
     } catch (err) {
-      showError(err.response?.data?.detail || "Check-in failed.");
+      showError(
+        err.response?.data?.detail ||
+          "Check-in failed."
+      );
     } finally {
       setActionLoading(false);
     }
   };
+
+  /* ============================================================
+     CHECK OUT
+  ============================================================ */
 
   const handleCheckOut = async () => {
     setActionLoading(true);
+
     try {
       await checkOut();
+
       showSuccess("Checked out successfully!");
+
       await fetchToday();
       await fetchHistory();
     } catch (err) {
-      showError(err.response?.data?.detail || "Check-out failed.");
+      showError(
+        err.response?.data?.detail ||
+          "Check-out failed."
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
+  /* ============================================================
+     FORMATTING
+  ============================================================ */
+
   const formatTime = (isoString) => {
-    if (!isoString) return "--:--";
+    if (!isoString) {
+      return "--:--";
+    }
+
     try {
       return new Date(isoString).toLocaleTimeString([], {
         hour: "2-digit",
@@ -107,20 +188,27 @@ export default function Attendance() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "--";
+    if (!dateStr) {
+      return "--";
+    }
+
     try {
       const parts = dateStr.split("-");
+
       if (parts.length === 3) {
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1;
         const day = parseInt(parts[2], 10);
+
         const dt = new Date(year, month, day);
+
         return dt.toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
         });
       }
+
       return new Date(dateStr).toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
@@ -132,501 +220,1038 @@ export default function Attendance() {
   };
 
   const formatWorkingMinutes = (minutes) => {
-    if (minutes === null || minutes === undefined) return "--";
+    if (
+      minutes === null ||
+      minutes === undefined
+    ) {
+      return "--";
+    }
+
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (hrs === 0) return `${mins}m`;
-    if (mins === 0) return `${hrs}h`;
+
+    if (hrs === 0) {
+      return `${mins}m`;
+    }
+
+    if (mins === 0) {
+      return `${hrs}h`;
+    }
+
     return `${hrs}h ${mins}m`;
   };
 
-  const getStatusBadgeStyle = (status) => {
+  /* ============================================================
+     STATUS
+  ============================================================ */
+
+  const getStatusConfig = (status) => {
     switch (status) {
       case "PRESENT":
-        return { backgroundColor: "rgba(22, 163, 74, 0.2)", color: "#4ade80", border: "1px solid #16a34a" };
+        return {
+          label: "Present",
+          className:
+            "bg-[#e8f2ec] text-[#2f6b4f] border-[#cfe0d4]",
+          dot: "bg-[#2f6b4f]",
+        };
+
       case "LATE":
-        return { backgroundColor: "rgba(234, 179, 8, 0.2)", color: "#facc15", border: "1px solid #eab308" };
+        return {
+          label: "Late",
+          className:
+            "bg-[#fff6df] text-[#956817] border-[#ead9a8]",
+          dot: "bg-[#b8862c]",
+        };
+
       case "HALF_DAY":
-        return { backgroundColor: "rgba(249, 115, 22, 0.2)", color: "#fb923c", border: "1px solid #f97316" };
+        return {
+          label: "Half Day",
+          className:
+            "bg-[#fff1e7] text-[#a85d27] border-[#edd3bd]",
+          dot: "bg-[#c56c2b]",
+        };
+
       case "ABSENT":
-        return { backgroundColor: "rgba(220, 38, 38, 0.2)", color: "#f87171", border: "1px solid #dc2626" };
+        return {
+          label: "Absent",
+          className:
+            "bg-[#fff0ed] text-[#a94d3f] border-[#edcbc5]",
+          dot: "bg-[#b85545]",
+        };
+
       default:
-        return { backgroundColor: "rgba(148, 163, 184, 0.2)", color: "#cbd5e1", border: "1px solid #64748b" };
+        return {
+          label: status || "Unknown",
+          className:
+            "bg-[#f1f4f2] text-[#64736a] border-[#dce3de]",
+          dot: "bg-[#7b8981]",
+        };
     }
   };
 
+  /* ============================================================
+     TODAY STATUS
+  ============================================================ */
+
+  const todayAttendance =
+    todayStatus.attendance;
+
+  const todayStatusConfig = todayAttendance
+    ? getStatusConfig(todayAttendance.status)
+    : null;
+
+  const todayLabel = useMemo(() => {
+    if (todayStatus.has_checked_out) {
+      return "Workday completed";
+    }
+
+    if (todayStatus.has_checked_in) {
+      return "Currently checked in";
+    }
+
+    return "Not checked in";
+  }, [todayStatus]);
+
+  const hasFilters =
+    Boolean(fromDate) ||
+    Boolean(toDate) ||
+    Boolean(statusFilter);
+
+  const clearFilters = () => {
+    setFromDate("");
+    setToDate("");
+    setStatusFilter("");
+    setPage(1);
+  };
+
+  const currentDate = new Date().toLocaleDateString(
+    undefined,
+    {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }
+  );
+
   return (
     <AppLayout title="My Attendance">
-      <div style={styles.container}>
-        <BackToDashboard to="/employee/dashboard" role="EMPLOYEE" />
 
-        <div style={styles.header}>
-          <h1 style={styles.title}>Attendance Management</h1>
-          <p style={styles.subtitle}>Daily check-in, check-out & work hours history</p>
-        </div>
+      <div className="min-h-full w-full min-w-0 bg-[#f6f8f6] px-4 pb-10 sm:px-6 lg:px-8">
 
-        {/* Today's Card */}
-        <div style={styles.todayCard}>
-          <div style={styles.todayCardHeader}>
-            <div style={styles.dateDisplay}>
-              <span style={styles.todayLabel}>Today's Status</span>
-              <span style={styles.todayDate}>{new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</span>
+        <div className="mx-auto w-full max-w-7xl pt-2">
+
+          <BackToDashboard
+            to="/employee/dashboard"
+            role="EMPLOYEE"
+          />
+
+          {/* ==================================================
+              HERO
+          ================================================== */}
+
+          <section className="relative mt-4 overflow-hidden rounded-[28px] bg-[#17251f] px-6 py-8 text-white shadow-[0_18px_45px_rgba(23,37,31,0.15)] sm:px-8 lg:px-10 lg:py-9">
+
+            <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#2f6b4f]/30 blur-3xl" />
+
+            <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-[#7fa78c]/10 blur-3xl" />
+
+            <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+
+              <div className="max-w-2xl">
+
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold tracking-[0.12em] text-[#dcefe3]">
+                  <UserCheck size={14} />
+                  EMPLOYEE ATTENDANCE
+                </div>
+
+                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+                  Attendance
+                </h1>
+
+                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
+                  Keep track of your workday, record your
+                  check-in and check-out, and review your
+                  attendance history.
+                </p>
+
+                <div className="mt-5 flex items-center gap-2 text-sm text-slate-300">
+                  <CalendarDays size={16} />
+                  {currentDate}
+                </div>
+
+              </div>
+
+              {/* Current state */}
+
+              <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
+
+                <div className="flex items-center justify-between">
+
+                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Today's Status
+                  </span>
+
+                  {todayStatusConfig && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase ${todayStatusConfig.className}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${todayStatusConfig.dot}`}
+                      />
+                      {todayStatusConfig.label}
+                    </span>
+                  )}
+
+                </div>
+
+                <p className="mt-4 text-xl font-bold text-white">
+                  {todayLabel}
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  {todayStatus.has_checked_out
+                    ? "Your attendance for today is complete."
+                    : todayStatus.has_checked_in
+                    ? "Your workday is currently active."
+                    : "Start your workday by checking in."}
+                </p>
+
+              </div>
+
             </div>
-            <div style={styles.badgeGroup}>
-              {todayStatus.attendance && (
-                <span style={{ ...styles.statusBadge, ...getStatusBadgeStyle(todayStatus.attendance.status) }}>
-                  {todayStatus.attendance.status}
-                </span>
-              )}
+          </section>
+
+
+          {/* ==================================================
+              TODAY'S WORKDAY
+          ================================================== */}
+
+          <section className="mt-7">
+
+            <div className="mb-4">
+
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6b7c72]">
+                Today's Workday
+              </p>
+
+              <h2 className="mt-1 text-xl font-bold text-[#17251f]">
+                Attendance activity
+              </h2>
+
             </div>
-          </div>
 
-          <div style={styles.todayGrid}>
-            <div style={styles.timeBox}>
-              <span style={styles.boxLabel}>Check In</span>
-              <span style={styles.boxValue}>
-                {todayStatus.attendance?.check_in ? formatTime(todayStatus.attendance.check_in) : "--:--"}
-              </span>
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.35fr]">
+
+              {/* Check in */}
+
+              <AttendanceTimeCard
+                icon={<LogIn size={19} />}
+                label="Check In"
+                value={
+                  todayAttendance?.check_in
+                    ? formatTime(
+                        todayAttendance.check_in
+                      )
+                    : "--:--"
+                }
+                description={
+                  todayAttendance?.check_in
+                    ? "Recorded today"
+                    : "Not recorded yet"
+                }
+              />
+
+
+              {/* Check out */}
+
+              <AttendanceTimeCard
+                icon={<LogOut size={19} />}
+                label="Check Out"
+                value={
+                  todayAttendance?.check_out
+                    ? formatTime(
+                        todayAttendance.check_out
+                      )
+                    : "--:--"
+                }
+                description={
+                  todayAttendance?.check_out
+                    ? "Recorded today"
+                    : "Not recorded yet"
+                }
+              />
+
+
+              {/* Work hours */}
+
+              <AttendanceTimeCard
+                icon={<Timer size={19} />}
+                label="Work Hours"
+                value={formatWorkingMinutes(
+                  todayAttendance?.working_minutes
+                )}
+                description="Total recorded time"
+              />
+
+
+              {/* Action */}
+
+              <div className="rounded-[22px] border border-[#dce6df] bg-white p-5 shadow-[0_7px_25px_rgba(23,37,31,0.04)]">
+
+                <div className="flex items-center gap-2 text-[#2f6b4f]">
+                  <Clock3 size={18} />
+
+                  <span className="text-xs font-bold uppercase tracking-[0.12em]">
+                    Workday Control
+                  </span>
+                </div>
+
+                <p className="mt-3 text-base font-bold text-[#17251f]">
+                  {todayStatus.has_checked_out
+                    ? "Attendance completed"
+                    : todayStatus.has_checked_in
+                    ? "You're currently working"
+                    : "Ready to start?"}
+                </p>
+
+                <div className="mt-4 flex gap-2">
+
+                  <button
+                    type="button"
+                    onClick={handleCheckIn}
+                    disabled={
+                      todayStatus.has_checked_in ||
+                      actionLoading
+                    }
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition ${
+                      todayStatus.has_checked_in
+                        ? "cursor-not-allowed border border-[#dce5df] bg-[#f1f4f2] text-[#8a968f]"
+                        : "bg-[#2f6b4f] text-white hover:bg-[#244d38]"
+                    }`}
+                  >
+                    {todayStatus.has_checked_in ? (
+                      <>
+                        <Check size={14} />
+                        Checked In
+                      </>
+                    ) : (
+                      <>
+                        <LogIn size={14} />
+                        Check In
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCheckOut}
+                    disabled={
+                      !todayStatus.has_checked_in ||
+                      todayStatus.has_checked_out ||
+                      actionLoading
+                    }
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition ${
+                      !todayStatus.has_checked_in ||
+                      todayStatus.has_checked_out
+                        ? "cursor-not-allowed border border-[#dce5df] bg-[#f1f4f2] text-[#8a968f]"
+                        : "bg-[#17251f] text-white hover:bg-[#263c32]"
+                    }`}
+                  >
+                    {todayStatus.has_checked_out ? (
+                      <>
+                        <Check size={14} />
+                        Checked Out
+                      </>
+                    ) : (
+                      <>
+                        <LogOut size={14} />
+                        Check Out
+                      </>
+                    )}
+                  </button>
+
+                </div>
+
+                {actionLoading && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-[11px] font-semibold text-[#6b7c72]">
+                    <RefreshCw
+                      size={12}
+                      className="animate-spin"
+                    />
+                    Updating attendance...
+                  </div>
+                )}
+
+              </div>
+
             </div>
-            <div style={styles.timeBox}>
-              <span style={styles.boxLabel}>Check Out</span>
-              <span style={styles.boxValue}>
-                {todayStatus.attendance?.check_out ? formatTime(todayStatus.attendance.check_out) : "--:--"}
-              </span>
+          </section>
+
+
+          {/* ==================================================
+              HISTORY HEADER
+          ================================================== */}
+
+          <section className="mt-9">
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+
+              <div>
+
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6b7c72]">
+                  Records
+                </p>
+
+                <div className="mt-1 flex items-center gap-3">
+
+                  <h2 className="text-xl font-bold text-[#17251f]">
+                    Attendance History
+                  </h2>
+
+                  <span className="rounded-full bg-[#e8f2ec] px-2.5 py-1 text-[10px] font-bold text-[#2f6b4f]">
+                    {total} records
+                  </span>
+
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Review your previous attendance activity.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchHistory}
+                disabled={loading}
+                className="inline-flex w-fit items-center gap-2 rounded-xl border border-[#dce5df] bg-white px-3.5 py-2 text-sm font-semibold text-[#365444] shadow-sm transition hover:bg-[#f5f8f6] disabled:opacity-60"
+              >
+                <RefreshCw
+                  size={15}
+                  className={
+                    loading ? "animate-spin" : ""
+                  }
+                />
+                Refresh
+              </button>
+
             </div>
-            <div style={styles.timeBox}>
-              <span style={styles.boxLabel}>Work Hours</span>
-              <span style={styles.boxValue}>
-                {formatWorkingMinutes(todayStatus.attendance?.working_minutes)}
-              </span>
+
+
+            {/* ==================================================
+                FILTER BAR
+            ================================================== */}
+
+            <div className="mt-5 overflow-hidden rounded-[22px] border border-[#dce5df] bg-white">
+
+              <div className="flex items-center justify-between border-b border-[#edf1ee] px-5 py-4">
+
+                <div className="flex items-center gap-2">
+
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f2ec] text-[#2f6b4f]">
+                    <SlidersHorizontal size={15} />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-[#26382f]">
+                      Filter records
+                    </p>
+
+                    <p className="hidden text-[11px] text-slate-400 sm:block">
+                      Narrow your attendance history
+                    </p>
+                  </div>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMobileFiltersOpen(
+                      (value) => !value
+                    )
+                  }
+                  className="text-xs font-bold text-[#2f6b4f] sm:hidden"
+                >
+                  {mobileFiltersOpen
+                    ? "Hide"
+                    : "Show"}
+                </button>
+
+              </div>
+
+
+              <div
+                className={`grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] ${
+                  mobileFiltersOpen
+                    ? "grid"
+                    : "hidden sm:grid"
+                }`}
+              >
+
+                <FilterField label="From Date">
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => {
+                      setFromDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="attendance-input"
+                  />
+                </FilterField>
+
+                <FilterField label="To Date">
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => {
+                      setToDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="attendance-input"
+                  />
+                </FilterField>
+
+                <FilterField label="Status">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setPage(1);
+                    }}
+                    className="attendance-input"
+                  >
+                    <option value="">
+                      All statuses
+                    </option>
+
+                    <option value="PRESENT">
+                      Present
+                    </option>
+
+                    <option value="LATE">
+                      Late
+                    </option>
+                  </select>
+                </FilterField>
+
+                <div className="flex items-end">
+
+                  {hasFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-xl border border-[#dce5df] px-4 text-sm font-semibold text-[#52665a] transition hover:bg-[#f5f8f6] lg:w-auto"
+                    >
+                      <X size={15} />
+                      Clear
+                    </button>
+                  )}
+
+                </div>
+
+              </div>
             </div>
-          </div>
 
-          <div style={styles.actionRow}>
-            <button
-              onClick={handleCheckIn}
-              disabled={todayStatus.has_checked_in || actionLoading}
-              style={todayStatus.has_checked_in ? styles.btnDisabled : styles.checkInBtn}
-            >
-              {actionLoading ? "Processing..." : todayStatus.has_checked_in ? <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}><Check size={16} /> Checked In</span> : "Check In"}
-            </button>
-            <button
-              onClick={handleCheckOut}
-              disabled={!todayStatus.has_checked_in || todayStatus.has_checked_out || actionLoading}
-              style={!todayStatus.has_checked_in || todayStatus.has_checked_out ? styles.btnDisabled : styles.checkOutBtn}
-            >
-              {actionLoading ? "Processing..." : todayStatus.has_checked_out ? <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}><Check size={16} /> Checked Out</span> : "Check Out"}
-            </button>
-          </div>
-        </div>
 
-        {/* History Section */}
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Attendance History</h2>
-          <span style={styles.totalCount}>Total Records: {total}</span>
-        </div>
+            {/* ==================================================
+                HISTORY
+            ================================================== */}
 
-        {/* Filters */}
-        <div style={styles.filterBar}>
-          <div style={styles.filterItem}>
-            <label style={styles.filterLabel}>From Date</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-              style={styles.dateInput}
-            />
-          </div>
-          <div style={styles.filterItem}>
-            <label style={styles.filterLabel}>To Date</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-              style={styles.dateInput}
-            />
-          </div>
-          <div style={styles.filterItem}>
-            <label style={styles.filterLabel}>Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              style={styles.selectInput}
-            >
-              <option value="">All Statuses</option>
-              <option value="PRESENT">PRESENT</option>
-              <option value="LATE">LATE</option>
-            </select>
-          </div>
-          {(fromDate || toDate || statusFilter) && (
-            <button
-              onClick={() => { setFromDate(""); setToDate(""); setStatusFilter(""); setPage(1); }}
-              style={styles.clearBtn}
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
+            <div className="mt-5">
 
-        {/* Table */}
-        <div style={styles.tableCard}>
-          {loading ? (
-            <div style={styles.stateText}>Loading attendance history...</div>
-          ) : history.length === 0 ? (
-            <div style={styles.stateText}>No attendance history found.</div>
-          ) : (
-            <>
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Date</th>
-                      <th style={styles.th}>Check In</th>
-                      <th style={styles.th}>Check Out</th>
-                      <th style={styles.th}>Work Hours</th>
-                      <th style={styles.th}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              {loading ? (
+                <AttendanceLoading />
+              ) : history.length === 0 ? (
+                <EmptyAttendance />
+              ) : (
+                <>
+                  {/* Desktop */}
+
+                  <div className="hidden overflow-hidden rounded-[22px] border border-[#dce5df] bg-white shadow-[0_7px_25px_rgba(23,37,31,0.04)] md:block">
+
+                    <div className="overflow-x-auto">
+
+                      <table className="w-full border-collapse text-left">
+
+                        <thead>
+                          <tr className="border-b border-[#e8eee9] bg-[#f7faf8]">
+
+                            <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#718078]">
+                              Date
+                            </th>
+
+                            <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#718078]">
+                              Check In
+                            </th>
+
+                            <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#718078]">
+                              Check Out
+                            </th>
+
+                            <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#718078]">
+                              Work Hours
+                            </th>
+
+                            <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#718078]">
+                              Status
+                            </th>
+
+                          </tr>
+                        </thead>
+
+                        <tbody>
+
+                          {history.map((item) => (
+                            <AttendanceTableRow
+                              key={item.id}
+                              item={item}
+                              formatDate={formatDate}
+                              formatTime={formatTime}
+                              formatWorkingMinutes={
+                                formatWorkingMinutes
+                              }
+                              getStatusConfig={
+                                getStatusConfig
+                              }
+                            />
+                          ))}
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Mobile */}
+
+                  <div className="space-y-3 md:hidden">
+
                     {history.map((item) => (
-                      <tr key={item.id} style={styles.tr}>
-                        <td style={styles.tdDate}>{formatDate(item.attendance_date)}</td>
-                        <td style={styles.td}>{formatTime(item.check_in)}</td>
-                        <td style={styles.td}>{formatTime(item.check_out)}</td>
-                        <td style={styles.tdHours}>{formatWorkingMinutes(item.working_minutes)}</td>
-                        <td style={styles.td}>
-                          <span style={{ ...styles.statusBadge, ...getStatusBadgeStyle(item.status) }}>
-                            {item.status}
-                          </span>
-                        </td>
-                      </tr>
+                      <AttendanceMobileCard
+                        key={item.id}
+                        item={item}
+                        formatDate={formatDate}
+                        formatTime={formatTime}
+                        formatWorkingMinutes={
+                          formatWorkingMinutes
+                        }
+                        getStatusConfig={
+                          getStatusConfig
+                        }
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Pagination */}
-              <div style={styles.paginationRow}>
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  style={{ ...(page <= 1 ? styles.pageBtnDisabled : styles.pageBtn), display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
-                >
-                  <ArrowLeft size={14} /> Previous
-                </button>
-                <span style={styles.pageInfo}>
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  style={{ ...(page >= totalPages ? styles.pageBtnDisabled : styles.pageBtn), display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
-                >
-                  Next <ArrowRight size={14} />
-                </button>
-              </div>
-            </>
-          )}
+                  </div>
+
+
+                  {/* Pagination */}
+
+                  <div className="mt-5 flex flex-col gap-3 rounded-[20px] border border-[#dce5df] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    <p className="text-xs font-medium text-slate-500">
+                      Page{" "}
+                      <span className="font-bold text-[#26382f]">
+                        {page}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-bold text-[#26382f]">
+                        {totalPages}
+                      </span>
+                    </p>
+
+                    <div className="flex gap-2">
+
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() =>
+                          setPage((p) => p - 1)
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#dce5df] px-3.5 py-2 text-xs font-bold text-[#365444] transition hover:bg-[#f5f8f6] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ArrowLeft size={14} />
+                        Previous
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={
+                          page >= totalPages
+                        }
+                        onClick={() =>
+                          setPage((p) => p + 1)
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#2f6b4f] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#244d38] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Next
+                        <ArrowRight size={14} />
+                      </button>
+
+                    </div>
+
+                  </div>
+                </>
+              )}
+
+            </div>
+
+          </section>
+
         </div>
       </div>
+
+      <style>{`
+        .attendance-input {
+          width: 100%;
+          height: 42px;
+          box-sizing: border-box;
+          border: 1px solid #d8e2db;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #26382f;
+          padding: 0 12px;
+          font-size: 13px;
+          font-weight: 500;
+          outline: none;
+          transition: border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        }
+
+        .attendance-input:focus {
+          border-color: #2f6b4f;
+          box-shadow: 0 0 0 4px rgba(47, 107, 79, 0.10);
+        }
+
+        .attendance-input::placeholder {
+          color: #9aa59e;
+        }
+      `}</style>
+
     </AppLayout>
   );
 }
 
-const styles = {
-  container: {
-    padding: "0 0 2rem 0",
-    width: "100%",
-    maxWidth: "100%",
-    boxSizing: "border-box",
-  },
-  header: {
-    marginBottom: "1.5rem",
-  },
-  title: {
-    fontSize: "clamp(1.35rem, 4vw, 1.875rem)",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-    wordBreak: "break-word",
-  },
-  subtitle: {
-    fontSize: "clamp(0.8rem, 2.5vw, 0.875rem)",
-    color: "var(--text-secondary)",
-    marginTop: "0.25rem",
-  },
-  todayCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.25rem",
-    marginBottom: "2rem",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  todayCardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1.25rem",
-    flexWrap: "wrap",
-    gap: "0.75rem",
-  },
-  dateDisplay: {
-    display: "flex",
-    flexDirection: "column",
-    minWidth: 0,
-    flex: "1 1 auto",
-  },
-  todayLabel: {
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-  },
-  todayDate: {
-    fontSize: "clamp(1rem, 3.5vw, 1.25rem)",
-    fontWeight: "700",
-    color: "var(--primary-color)",
-    wordBreak: "break-word",
-  },
-  badgeGroup: {
-    display: "flex",
-    gap: "0.5rem",
-  },
-  statusBadge: {
-    padding: "0.25rem 0.625rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-  },
-  todayGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-    width: "100%",
-  },
-  timeBox: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "0.875rem 0.75rem",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    minWidth: 0,
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  boxLabel: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    marginBottom: "0.375rem",
-    fontWeight: "600",
-  },
-  boxValue: {
-    fontSize: "clamp(1.05rem, 3vw, 1.35rem)",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    fontFamily: "var(--font-mono)",
-  },
-  actionRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "0.875rem",
-    width: "100%",
-  },
-  checkInBtn: {
-    flex: "1 1 140px",
-    backgroundColor: "var(--success-color)",
-    color: "#ffffff",
-    border: "none",
-    padding: "0.875rem 0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "700",
-    fontSize: "0.95rem",
-    cursor: "pointer",
-    boxSizing: "border-box",
-  },
-  checkOutBtn: {
-    flex: "1 1 140px",
-    backgroundColor: "var(--danger-color)",
-    color: "#ffffff",
-    border: "none",
-    padding: "0.875rem 0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "700",
-    fontSize: "0.95rem",
-    cursor: "pointer",
-    boxSizing: "border-box",
-  },
-  btnDisabled: {
-    flex: "1 1 140px",
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    border: "1px solid var(--border-color)",
-    padding: "0.875rem 0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.95rem",
-    cursor: "not-allowed",
-    boxSizing: "border-box",
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "0.5rem",
-    marginBottom: "1rem",
-  },
-  sectionTitle: {
-    fontSize: "clamp(1.1rem, 3.5vw, 1.25rem)",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-  },
-  totalCount: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-  },
-  filterBar: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "1rem",
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    padding: "1rem",
-    borderRadius: "var(--radius-lg)",
-    marginBottom: "1.25rem",
-    alignItems: "flex-end",
-  },
-  filterItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.25rem",
-    flex: "1 1 130px",
-    minWidth: 0,
-  },
-  filterLabel: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
-    fontWeight: "600",
-  },
-  dateInput: {
-    width: "100%",
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    color: "var(--text-primary)",
-    padding: "0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    boxSizing: "border-box",
-  },
-  selectInput: {
-    width: "100%",
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    color: "var(--text-primary)",
-    padding: "0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    boxSizing: "border-box",
-  },
-  clearBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    cursor: "pointer",
-  },
-  tableCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    overflow: "hidden",
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    width: "100%",
-    maxWidth: "100%",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    textAlign: "left",
-  },
-  th: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    padding: "0.875rem 1.25rem",
-    borderBottom: "1px solid var(--border-color)",
-  },
-  tr: {
-    borderBottom: "1px solid var(--border-color)",
-  },
-  td: {
-    padding: "0.875rem 1.25rem",
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    fontFamily: "var(--font-mono)",
-  },
-  tdDate: {
-    padding: "0.875rem 1.25rem",
-    fontSize: "0.875rem",
-    color: "var(--text-primary)",
-    fontWeight: "600",
-  },
-  tdHours: {
-    padding: "0.875rem 1.25rem",
-    fontSize: "0.875rem",
-    color: "var(--primary-color)",
-    fontWeight: "600",
-    fontFamily: "var(--font-mono)",
-  },
-  paginationRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "0.75rem",
-    padding: "1rem 1.25rem",
-    backgroundColor: "var(--bg-surface-elevated)",
-    borderTop: "1px solid var(--border-color)",
-  },
-  pageBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    cursor: "pointer",
-    fontSize: "0.875rem",
-    fontWeight: "600",
-  },
-  pageBtnDisabled: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    cursor: "not-allowed",
-    fontSize: "0.875rem",
-  },
-  pageInfo: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-  },
-  stateText: {
-    padding: "3rem",
-    textAlign: "center",
-    color: "var(--text-muted)",
-  },
-};
+
+/* ================================================================
+   TIME CARD
+================================================================ */
+
+function AttendanceTimeCard({
+  icon,
+  label,
+  value,
+  description,
+}) {
+  return (
+    <div className="rounded-[22px] border border-[#dce5df] bg-white p-5 shadow-[0_7px_25px_rgba(23,37,31,0.04)]">
+
+      <div className="flex items-center justify-between">
+
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f2ec] text-[#2f6b4f]">
+          {icon}
+        </div>
+
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+          Today
+        </span>
+
+      </div>
+
+      <p className="mt-5 text-xs font-bold uppercase tracking-[0.1em] text-[#718078]">
+        {label}
+      </p>
+
+      <p className="mt-1 font-mono text-2xl font-extrabold tracking-tight text-[#17251f]">
+        {value}
+      </p>
+
+      <p className="mt-1 text-xs text-slate-400">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* ================================================================
+   FILTER FIELD
+================================================================ */
+
+function FilterField({
+  label,
+  children,
+}) {
+  return (
+    <div className="min-w-0">
+
+      <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#718078]">
+        {label}
+      </label>
+
+      {children}
+
+    </div>
+  );
+}
+
+
+/* ================================================================
+   TABLE ROW
+================================================================ */
+
+function AttendanceTableRow({
+  item,
+  formatDate,
+  formatTime,
+  formatWorkingMinutes,
+  getStatusConfig,
+}) {
+  const status = getStatusConfig(item.status);
+
+  return (
+    <tr className="border-b border-[#edf1ee] transition last:border-b-0 hover:bg-[#fafcfb]">
+
+      <td className="px-5 py-4">
+
+        <div className="flex items-center gap-3">
+
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f1f5f2] text-[#527062]">
+            <CalendarDays size={15} />
+          </div>
+
+          <span className="text-sm font-bold text-[#26382f]">
+            {formatDate(item.attendance_date)}
+          </span>
+
+        </div>
+
+      </td>
+
+      <td className="px-5 py-4 font-mono text-sm font-semibold text-[#4b5f53]">
+        {formatTime(item.check_in)}
+      </td>
+
+      <td className="px-5 py-4 font-mono text-sm font-semibold text-[#4b5f53]">
+        {formatTime(item.check_out)}
+      </td>
+
+      <td className="px-5 py-4">
+
+        <div className="flex items-center gap-2">
+
+          <Clock3
+            size={14}
+            className="text-[#6d8175]"
+          />
+
+          <span className="text-sm font-bold text-[#2f6b4f]">
+            {formatWorkingMinutes(
+              item.working_minutes
+            )}
+          </span>
+
+        </div>
+
+      </td>
+
+      <td className="px-5 py-4">
+
+        <StatusBadge
+          status={item.status}
+          getStatusConfig={getStatusConfig}
+        />
+
+      </td>
+
+    </tr>
+  );
+}
+
+
+/* ================================================================
+   MOBILE CARD
+================================================================ */
+
+function AttendanceMobileCard({
+  item,
+  formatDate,
+  formatTime,
+  formatWorkingMinutes,
+  getStatusConfig,
+}) {
+  return (
+    <div className="rounded-[20px] border border-[#dce5df] bg-white p-4 shadow-[0_6px_20px_rgba(23,37,31,0.04)]">
+
+      <div className="flex items-start justify-between gap-3">
+
+        <div className="flex items-center gap-3">
+
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f2ec] text-[#2f6b4f]">
+            <CalendarDays size={17} />
+          </div>
+
+          <div>
+
+            <p className="text-sm font-bold text-[#26382f]">
+              {formatDate(item.attendance_date)}
+            </p>
+
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              Attendance record
+            </p>
+
+          </div>
+
+        </div>
+
+        <StatusBadge
+          status={item.status}
+          getStatusConfig={getStatusConfig}
+        />
+
+      </div>
+
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+
+        <MobileValue
+          label="Check In"
+          value={formatTime(item.check_in)}
+        />
+
+        <MobileValue
+          label="Check Out"
+          value={formatTime(item.check_out)}
+        />
+
+        <MobileValue
+          label="Work"
+          value={formatWorkingMinutes(
+            item.working_minutes
+          )}
+        />
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* ================================================================
+   MOBILE VALUE
+================================================================ */
+
+function MobileValue({
+  label,
+  value,
+}) {
+  return (
+    <div className="rounded-xl bg-[#f7faf8] p-3">
+
+      <p className="text-[9px] font-bold uppercase tracking-wider text-[#849189]">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate font-mono text-xs font-bold text-[#34483c]">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* ================================================================
+   STATUS BADGE
+================================================================ */
+
+function StatusBadge({
+  status,
+  getStatusConfig,
+}) {
+  const config = getStatusConfig(status);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${config.className}`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${config.dot}`}
+      />
+
+      {config.label}
+    </span>
+  );
+}
+
+
+/* ================================================================
+   LOADING
+================================================================ */
+
+function AttendanceLoading() {
+  return (
+    <div className="grid gap-3 md:grid-cols-1">
+
+      {[1, 2, 3].map((item) => (
+        <div
+          key={item}
+          className="animate-pulse rounded-[20px] border border-[#e0e8e2] bg-white p-5"
+        >
+          <div className="flex items-center gap-4">
+
+            <div className="h-10 w-10 rounded-xl bg-[#edf2ee]" />
+
+            <div className="flex-1">
+
+              <div className="h-4 w-32 rounded bg-[#edf2ee]" />
+
+              <div className="mt-2 h-3 w-20 rounded bg-[#f1f4f2]" />
+
+            </div>
+
+          </div>
+
+          <div className="mt-5 h-12 rounded-xl bg-[#f3f6f4]" />
+
+        </div>
+      ))}
+
+    </div>
+  );
+}
+
+
+/* ================================================================
+   EMPTY STATE
+================================================================ */
+
+function EmptyAttendance() {
+  return (
+    <div className="rounded-[24px] border border-dashed border-[#cbd9cf] bg-white px-6 py-14 text-center">
+
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f2ec] text-[#2f6b4f]">
+        <CalendarDays size={24} />
+      </div>
+
+      <h3 className="mt-5 text-lg font-bold text-[#17251f]">
+        No attendance records
+      </h3>
+
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+        There are no attendance records matching
+        your selected filters.
+      </p>
+
+    </div>
+  );
+}

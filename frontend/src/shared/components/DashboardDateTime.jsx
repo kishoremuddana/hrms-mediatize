@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CalendarDays, Clock3 } from "lucide-react";
 
-export default function DashboardDateTime() {
+export default function DashboardDateTime({ variant = "default" }) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -25,15 +25,39 @@ export default function DashboardDateTime() {
   });
 
   return (
-    <div style={styles.container} aria-label="Current date and time">
+    <div
+      style={{
+        ...styles.container,
+        ...(variant === "employee"
+          ? styles.employeeContainer
+          : {}),
+      }}
+      aria-label="Current date and time"
+    >
       <div style={styles.item}>
         <CalendarDays size={15} style={styles.icon} />
-        <span style={styles.dateText}>{dateString}</span>
+        <span
+          style={
+            variant === "employee"
+              ? styles.employeeDateText
+              : styles.dateText
+          }
+        >
+          {dateString}
+        </span>
       </div>
       <div style={styles.divider} />
       <div style={styles.item}>
         <Clock3 size={15} style={styles.icon} />
-        <span style={styles.timeText}>{timeString}</span>
+        <span
+          style={
+            variant === "employee"
+              ? styles.employeeTimeText
+              : styles.timeText
+          }
+        >
+          {timeString}
+        </span>
       </div>
     </div>
   );
@@ -76,5 +100,24 @@ const styles = {
     width: "1px",
     height: "14px",
     backgroundColor: "var(--border-color)",
+  },
+
+  employeeContainer: {
+    backgroundColor: "#1f2937",
+    border: "1px solid rgba(255,255,255,0.75)",
+    color: "#ffffff",
+    borderRadius: "12px",
+    padding: "0.7rem 1rem",
+  },
+
+  employeeDateText: {
+    color: "#ffffff",
+    letterSpacing: "0.01em",
+  },
+
+  employeeTimeText: {
+    color: "#ffffff",
+    fontVariantNumeric: "tabular-nums",
+    letterSpacing: "0.02em",
   },
 };

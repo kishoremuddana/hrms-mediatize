@@ -41,6 +41,8 @@ export const deactivateEmployee = (id) => employeeApi.patch(`/${id}/deactivate`)
 
 export const getMyProfile = () => employeeApi.get("/me");
 export const updateMyProfile = (data) => employeeApi.put("/me", data);
+export const updateHRProfile = (data) =>
+  employeeApi.put("/me/hr-profile", data);
 export const uploadProfilePhoto = (formData) =>
   employeeApi.post("/me/profile-photo", formData, {
     headers: { "Content-Type": "multipart/form-data" },

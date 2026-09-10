@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.authentication_service.dependencies import get_current_user_with_password_check
+from app.authentication_service.dependencies import get_current_user
 from app.authentication_service.models import User
 from app.core.database import get_db
 from app.notification_service import service
@@ -28,7 +28,7 @@ def get_my_notifications(
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
     unread_only: bool = Query(False, description="Filter unread only"),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return service.get_user_notifications(
@@ -47,7 +47,7 @@ def get_my_notifications(
     summary="Get Unread Notification Count",
 )
 def get_my_unread_count(
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     count = service.get_unread_count(
@@ -64,7 +64,7 @@ def get_my_unread_count(
     summary="Mark All Notifications as Read",
 )
 def mark_all_notifications_read(
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     updated_count = service.mark_all_as_read(
@@ -86,7 +86,7 @@ def mark_all_notifications_read(
 )
 def mark_single_notification_read(
     notification_id: int,
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     notification = service.mark_as_read(

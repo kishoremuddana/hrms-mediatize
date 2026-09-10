@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import all models so Alembic can detect their tables
-from app.authentication_service.models import User, PasswordResetRequest
+from app.authentication_service.models import User
 from app.audit_service.models import AuditLog
 from app.employee_service.models import Employee
 from app.attendance_service.models import Attendance

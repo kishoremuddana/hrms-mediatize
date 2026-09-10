@@ -1,29 +1,35 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Moon, Sun } from "lucide-react";
-
 import { useAuth } from "../hooks/useAuth";
 import "./Login.css";
 
-import { useTheme } from "../../shared/context/ThemeContext";
 import { showSuccess, showError } from "../../shared/utils/toast";
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const darkMode = theme === "dark";
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
+  const { login, requestOTP } = useAuth();
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
 
   const [formData, setFormData] = useState({
     email: "",
-    role: "EMPLOYEE",
-    password: "",
+    otp: "",
   });
 
   const [loading, setLoading] = useState(false);
+
+  // OTP countdown
+  useEffect(() => {
+    if (!otpSent || otpTimer <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setOtpTimer((previousTime) => previousTime - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [otpSent, otpTimer]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -32,15 +38,6 @@ function Login() {
       ...previousData,
       [name]: value,
     }));
-  };
-
-  const handleRoleChange = (role) => {
-    setFormData((previousData) => ({
-      ...previousData,
-      role,
-    }));
-
-    setRoleOpen(false);
   };
 
   /*
@@ -59,41 +56,58 @@ function Login() {
    * Login.jsx only handles navigation.
    */
 
+  const handleResendOTP = async () => {
+    setLoading(true);
+
+    try {
+      await requestOTP(formData.email.trim());
+      setOtpTimer(300);
+
+      showSuccess("A new OTP has been sent to your email.");
+    } catch (error) {
+      console.error("OTP resend error:", error);
+
+      if (error.response) {
+        showError(
+          error.response.data?.detail ||
+            "Unable to resend OTP. Please try again."
+        );
+      } else {
+        showError("Unable to connect to the authentication server.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     setLoading(true);
 
     try {
-      const user = await login(
-        formData.email.trim(),
-        formData.role,
-        formData.password
-      );
+      if (!otpSent) {
+        await requestOTP(formData.email.trim());
 
-      console.log(
-        "Authenticated user:",
-        user
-      );
+        setOtpSent(true);
+        setOtpTimer(300);
 
-      showSuccess("Login successful!");
-
-      /*
-       * If HR approved a password reset request,
-       * the user must change the temporary password
-       * before accessing the dashboard.
-       */
-      if (user.must_change_password) {
-        navigate("/change-password", {
-          replace: true,
-        });
+        showSuccess(
+          "OTP sent to your registered email."
+        );
 
         return;
       }
 
-      /*
-       * HR users go to the HR dashboard.
-       */
+      const user = await login(
+        formData.email.trim(),
+        formData.otp.trim()
+      );
+
+      console.log("Authenticated user:", user);
+
+      showSuccess("Login successful!");
+
       if (user.role === "HR") {
         navigate("/hr/dashboard", {
           replace: true,
@@ -102,9 +116,6 @@ function Login() {
         return;
       }
 
-      /*
-       * Employee users go to the Employee dashboard.
-       */
       if (user.role === "EMPLOYEE") {
         navigate("/employee/dashboard", {
           replace: true,
@@ -113,42 +124,31 @@ function Login() {
         return;
       }
 
-      /*
-       * Backend currently supports only HR
-       * and EMPLOYEE roles.
-       */
       showError(
         "Your account has an invalid role. Please contact HR."
       );
-    } catch (error) {
-      console.error(
-        "Login error:",
-        error
-      );
+      } catch (error) {
+        console.error("Authentication error:", error);
 
-      if (error.response) {
-        showError(
-          error.response.data?.detail ||
-            "Invalid email, role, or password."
-        );
-      } else {
-        showError(
-          "Unable to connect to the authentication server."
-        );
-      }
-    } finally {
-      setLoading(false);
+        if (error.response) {
+          showError(
+            error.response.data?.detail ||
+              "Unable to authenticate. Please try again."
+          );
+        } else {
+          showError(
+            "Unable to connect to the authentication server."
+          );
+        }
+      } finally {
+        setLoading(false);
     }
   };
-
   return (
-    <main
-      className={`login-page ${
-        darkMode ? "dark" : "light"
-      }`}
-    >
+    <main className="login-page">
+
       {/* =====================================================
-          ANIMATED BACKGROUND
+          BACKGROUND
       ===================================================== */}
 
       <div
@@ -160,35 +160,6 @@ function Login() {
         <div className="login-glow login-glow-one" />
         <div className="login-glow login-glow-two" />
         <div className="login-glow login-glow-three" />
-
-        <div className="login-orbit login-orbit-one" />
-        <div className="login-orbit login-orbit-two" />
-        <div className="login-orbit login-orbit-three" />
-
-        <div className="login-particles">
-          {Array.from({ length: 32 }).map(
-            (_, index) => (
-              <span
-                key={index}
-                className="login-particle"
-                style={{
-                  "--particle-x": `${
-                    (index * 37) % 100
-                  }%`,
-                  "--particle-y": `${
-                    (index * 61) % 100
-                  }%`,
-                  "--particle-delay": `${
-                    index * -0.35
-                  }s`,
-                }}
-              />
-            )
-          )}
-        </div>
-
-        <div className="login-wave login-wave-one" />
-        <div className="login-wave login-wave-two" />
       </div>
 
       {/* =====================================================
@@ -196,15 +167,18 @@ function Login() {
       ===================================================== */}
 
       <header className="login-header">
+
         <button
           type="button"
           className="login-brand"
           onClick={() => navigate("/")}
         >
           <div className="login-brand-icon">
+
             <svg
               viewBox="0 0 64 64"
               fill="none"
+              aria-hidden="true"
             >
               <circle
                 cx="32"
@@ -235,6 +209,7 @@ function Login() {
                 strokeLinecap="round"
               />
             </svg>
+
           </div>
 
           <div className="login-brand-text">
@@ -243,45 +218,6 @@ function Login() {
           </div>
         </button>
 
-        {/* Theme */}
-        <div className="login-theme">
-          <span
-            className={
-              darkMode ? "theme-active" : ""
-            }
-          >
-            <span className="theme-symbol"><Moon size={14} /></span>
-
-            <span className="theme-label">
-              Dark
-            </span>
-          </span>
-
-          <button
-            type="button"
-            className={`theme-toggle ${
-              darkMode
-                ? "theme-toggle-dark"
-                : ""
-            }`}
-            onClick={toggleTheme}
-            aria-label="Toggle dark and light mode"
-          >
-            <span />
-          </button>
-
-          <span
-            className={
-              !darkMode ? "theme-active" : ""
-            }
-          >
-            <span className="theme-symbol"><Sun size={14} /></span>
-
-            <span className="theme-label">
-              Light
-            </span>
-          </span>
-        </div>
       </header>
 
       {/* =====================================================
@@ -289,27 +225,145 @@ function Login() {
       ===================================================== */}
 
       <section className="login-content">
-        <div className="login-wrapper">
 
-          {/* Small welcome label */}
-          <div className="login-overline">
-            <span />
-            <p>SECURE WORKPLACE ACCESS</p>
-            <span />
-          </div>
+        <div className="login-layout">
 
-          {/* Card */}
-          <div className="login-card">
+          {/* =================================================
+              LEFT INFORMATION
+          ================================================= */}
 
-            {/* Top accent */}
-            <div className="card-accent" />
+          <section className="login-info">
 
-            {/* Icon */}
-            <div className="login-icon-wrapper">
-              <div className="login-icon">
+            <div className="login-badge">
+              <span className="login-badge-dot" />
+              SECURE WORKPLACE ACCESS
+            </div>
+
+            <h2>
+              Welcome to your
+              <span>HRMS Mediatize workspace.</span>
+            </h2>
+
+            <p className="login-description">
+              Access employee information, attendance,
+              projects and workplace resources through
+              your secure HRMS account.
+            </p>
+
+            <div className="login-features">
+
+              <div className="login-feature">
+
+                <div className="login-feature-number">
+                  01
+                </div>
+
+                <div>
+                  <strong>Secure authentication</strong>
+                  <span>
+                    Your account is protected through
+                    authenticated access.
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="login-feature-line" />
+
+              <div className="login-feature">
+
+                <div className="login-feature-number">
+                  02
+                </div>
+
+                <div>
+                  <strong>Role-based workspace</strong>
+                  <span>
+                    HR and Employee accounts have
+                    appropriate access levels.
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="login-feature-line" />
+
+              <div className="login-feature">
+
+                <div className="login-feature-number">
+                  03
+                </div>
+
+                <div>
+                  <strong>Centralized HR management</strong>
+                  <span>
+                    Manage your workplace information
+                    from one secure system.
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="login-security-status">
+
+              <div className="login-status-icon">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 3L20 6V11C20 16.2 16.7 20.4 12 22C7.3 20.4 4 16.2 4 11V6L12 3Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M9 12L11 14L15 10"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+
+              </div>
+
+              <div>
+                <strong>Protected HRMS environment</strong>
+
+                <span>
+                  Sign in using your registered company
+                  credentials.
+                </span>
+              </div>
+
+            </div>
+
+          </section>
+
+          {/* =================================================
+              LOGIN CARD
+          ================================================= */}
+
+          <section className="login-card">
+
+            <div className="login-card-accent" />
+
+            {/* Card Header */}
+
+            <div className="login-card-header">
+
+              <div className="login-card-icon">
+
                 <svg
                   viewBox="0 0 64 64"
                   fill="none"
+                  aria-hidden="true"
                 >
                   <circle
                     cx="32"
@@ -340,38 +394,47 @@ function Login() {
                     strokeLinecap="round"
                   />
                 </svg>
+
               </div>
-            </div>
 
-            {/* Heading */}
-            <div className="login-heading">
-              <h2>
-                Welcome <span>Back</span>
-              </h2>
+              <div>
 
-              <p>
-                Sign in to access your HRMS
-                workspace
-              </p>
+                <span className="login-card-label">
+                  ACCOUNT LOGIN
+                </span>
+
+                <h3>Welcome Back</h3>
+
+                <p>
+                  Sign in to access your HRMS workspace.
+                </p>
+
+              </div>
+
             </div>
 
             {/* Form */}
+
             <form
               className="login-form"
               onSubmit={handleSubmit}
             >
 
               {/* Email */}
+
               <div className="form-group">
+
                 <label htmlFor="email">
                   Email Address
                 </label>
 
                 <div className="input-wrapper">
+
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
                     className="input-icon"
+                    aria-hidden="true"
                   >
                     <rect
                       x="3"
@@ -392,276 +455,68 @@ function Login() {
                     onChange={handleChange}
                     placeholder="you@company.com"
                     autoComplete="email"
+                    disabled={loading}
                     required
                   />
+
                 </div>
+
               </div>
 
-              {/* Role */}
-              <div className="form-group role-group">
-                <label htmlFor="role-button">
-                  Sign in as
-                </label>
+              {/* OTP */}
 
-                <button
-                  id="role-button"
-                  type="button"
-                  className={`role-selector ${
-                    roleOpen
-                      ? "role-selector-open"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    setRoleOpen(
-                      (value) => !value
-                    )
-                  }
-                  aria-expanded={roleOpen}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="input-icon"
-                  >
-                    <circle
-                      cx="9"
-                      cy="8"
-                      r="3"
-                    />
-
-                    <path d="M3 20C3 16.7 5.7 14 9 14C12.3 14 15 16.7 15 20" />
-
-                    <path d="M17 11H21" />
-                    <path d="M19 9V13" />
-                  </svg>
-
-                  <span className="selected-role">
-                    {formData.role === "EMPLOYEE"
-                      ? "Employee"
-                      : "HR"}
-                  </span>
-
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className={`role-arrow ${
-                      roleOpen
-                        ? "role-arrow-open"
-                        : ""
-                    }`}
-                  >
-                    <path d="M6 9L12 15L18 9" />
-                  </svg>
-                </button>
-
-                {roleOpen && (
-                  <div className="role-dropdown">
-
-                    {/* Employee */}
-                    <button
-                      type="button"
-                      className={`role-option ${
-                        formData.role ===
-                        "EMPLOYEE"
-                          ? "role-option-selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleRoleChange(
-                          "EMPLOYEE"
-                        )
-                      }
-                    >
-                      <div className="role-option-icon">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <circle
-                            cx="9"
-                            cy="8"
-                            r="3"
-                          />
-
-                          <path d="M3 20C3 16.7 5.7 14 9 14C12.3 14 15 16.7 15 20" />
-                        </svg>
-                      </div>
-
-                      <div className="role-option-text">
-                        <strong>
-                          Employee
-                        </strong>
-
-                        <span>
-                          Employee workspace
-                        </span>
-                      </div>
-
-                      {formData.role ===
-                        "EMPLOYEE" && (
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          className="role-check"
-                        >
-                          <path d="M5 12L10 17L19 7" />
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* HR */}
-                    <button
-                      type="button"
-                      className={`role-option ${
-                        formData.role === "HR"
-                          ? "role-option-selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleRoleChange("HR")
-                      }
-                    >
-                      <div className="role-option-icon">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path d="M4 21V5C4 4.4 4.4 4 5 4H15C15.6 4 16 4.4 16 5V21" />
-
-                          <path d="M16 9H20V21" />
-
-                          <path d="M8 8H11" />
-                          <path d="M8 12H11" />
-                          <path d="M8 16H11" />
-                        </svg>
-                      </div>
-
-                      <div className="role-option-text">
-                        <strong>HR</strong>
-
-                        <span>
-                          Human Resources
-                          workspace
-                        </span>
-                      </div>
-
-                      {formData.role === "HR" && (
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          className="role-check"
-                        >
-                          <path d="M5 12L10 17L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Password */}
-              <div className="form-group">
-                <div className="password-label-row">
-                  <label htmlFor="password">
-                    Password
+              {otpSent && (
+                <div className="form-group">
+                  <label htmlFor="otp">
+                    One-Time Password
                   </label>
 
-                  <button
-                    type="button"
-                    className="forgot-button"
-                    onClick={() =>
-                      navigate(
-                        "/forgot-password"
-                      )
-                    }
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-
-                <div className="input-wrapper">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="input-icon"
-                  >
-                    <rect
-                      x="4"
-                      y="10"
-                      width="16"
-                      height="11"
-                      rx="3"
+                  <div className="input-wrapper">
+                    <input
+                      id="otp"
+                      type="text"
+                      name="otp"
+                      value={formData.otp}
+                      onChange={handleChange}
+                      placeholder="Enter 6-digit OTP"
+                      inputMode="numeric"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      disabled={loading}
+                      required
                     />
+                  </div>
+                  <div className="otp-actions">
+                    <span className="otp-timer">
+                      {otpTimer > 0
+                        ? `OTP expires in ${String(
+                            Math.floor(otpTimer / 60)
+                          ).padStart(2, "0")}:${String(
+                            otpTimer % 60
+                          ).padStart(2, "0")}`
+                        : "OTP expired"}
+                    </span>
 
-                    <path d="M8 10V7C8 4.8 9.8 3 12 3C14.2 3 16 4.8 16 7V10" />
-                  </svg>
-
-                  <input
-                    id="password"
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    required
-                  />
-
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() =>
-                      setShowPassword(
-                        (value) => !value
-                      )
-                    }
-                    aria-label={
-                      showPassword
-                        ? "Hide password"
-                        : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path d="M3 3L21 21" />
-
-                        <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
-
-                        <path d="M9.9 4.2A10.5 10.5 0 0 1 12 4C17 4 20.5 8 21 12C20.8 13.5 20.1 15 19 16.2" />
-
-                        <path d="M6.6 6.6C4.6 7.9 3.3 9.8 3 12C3.5 16 7 20 12 20C13.5 20 14.9 19.6 16.1 18.9" />
-                      </svg>
-                    ) : (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path d="M2.5 12C4 8 7.3 5 12 5C16.7 5 20 8 21.5 12C20 16 16.7 19 12 19C7.3 19 4 16 2.5 12Z" />
-
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="3"
-                        />
-                      </svg>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      className="resend-otp-button"
+                      onClick={handleResendOTP}
+                      disabled={loading || otpTimer > 0}
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Submit */}
+
               <button
                 type="submit"
                 disabled={loading}
                 className="login-submit"
               >
+
                 {loading ? (
                   <>
                     <span className="login-spinner" />
@@ -672,25 +527,34 @@ function Login() {
                   </>
                 ) : (
                   <>
-                    <span>Sign In</span>
+                    <span>
+                      {otpSent ? "Verify & Login" : "Get OTP"}
+                    </span>
 
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
+                      aria-hidden="true"
                     >
                       <path d="M5 12H19" />
+
                       <path d="M13 6L19 12L13 18" />
                     </svg>
                   </>
                 )}
+
               </button>
+
             </form>
 
             {/* Security */}
+
             <div className="login-security">
+
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
+                aria-hidden="true"
               >
                 <path d="M12 3L20 6V11C20 16.2 16.7 20.4 12 22C7.3 20.4 4 16.2 4 11V6L12 3Z" />
 
@@ -701,33 +565,43 @@ function Login() {
                 Protected by enterprise-grade
                 security
               </span>
+
             </div>
-          </div>
 
-          {/* Back */}
-          <button
-            type="button"
-            className="back-button"
-            onClick={() => navigate("/")}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path d="M19 12H5" />
-              <path d="M11 18L5 12L11 6" />
-            </svg>
+          </section>
 
-            Back to Welcome
-          </button>
-
-          {/* Footer */}
-          <p className="login-footer">
-            © 2026 Mediatize Tech Pvt Ltd. All
-            rights reserved.
-          </p>
         </div>
+
+        {/* Back */}
+
+        <button
+          type="button"
+          className="back-button"
+          onClick={() => navigate("/")}
+          disabled={loading}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5" />
+
+            <path d="M11 18L5 12L11 6" />
+          </svg>
+
+          Back to Welcome
+        </button>
+
+        {/* Footer */}
+
+        <p className="login-footer">
+          © {new Date().getFullYear()} Mediatize Tech Pvt Ltd.
+          All rights reserved.
+        </p>
+
       </section>
+
     </main>
   );
 }

@@ -9,33 +9,55 @@ import {
   WalletCards,
   RefreshCw,
   ArrowLeft,
+  Users,
+  CheckCircle2,
+  Clock3,
+  TrendingUp,
+  ShieldCheck,
+  Save,
+  Calculator,
 } from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
 import { showSuccess, showError } from "../../shared/utils/toast";
-import { getEmployeeBalances, updateEmployeeBalance } from "../services/leaveApi";
+import {
+  getEmployeeBalances,
+  updateEmployeeBalance,
+} from "../services/leaveApi";
 import { getEmployees } from "../../employee_service/services/employeeApi";
 
 function LeaveBalances() {
-  // Current calendar year as default
   const currentYear = new Date().getFullYear();
 
-  // Employee Search State
+  /* =========================================================
+     EMPLOYEE SEARCH
+  ========================================================= */
+
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Selected Context State
+  /* =========================================================
+     SELECTED EMPLOYEE / YEAR
+  ========================================================= */
+
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  // Balances & Loading State
+  /* =========================================================
+     BALANCES
+  ========================================================= */
+
   const [balances, setBalances] = useState([]);
   const [balancesLoading, setBalancesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Edit Modal State
+  /* =========================================================
+     EDIT MODAL
+  ========================================================= */
+
   const [editingBalance, setEditingBalance] = useState(null);
   const [allocatedDays, setAllocatedDays] = useState("");
   const [usedDays, setUsedDays] = useState("");
@@ -44,97 +66,200 @@ function LeaveBalances() {
 
   const searchRef = useRef(null);
 
-  // Close dropdown on outside click
+  /* =========================================================
+     CLOSE SEARCH DROPDOWN
+  ========================================================= */
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target)
+      ) {
         setDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
   }, []);
 
-  // Fetch employee options for dropdown
-  const fetchEmployeeOptions = useCallback(async (query) => {
-    setSearchLoading(true);
-    try {
-      const params = { limit: 12 };
-      if (query && query.trim()) {
-        params.search = query.trim();
+  /* =========================================================
+     FETCH EMPLOYEES
+  ========================================================= */
+
+  const fetchEmployeeOptions = useCallback(
+    async (query) => {
+      setSearchLoading(true);
+
+      try {
+        const params = {
+          limit: 12,
+        };
+
+        if (query && query.trim()) {
+          params.search = query.trim();
+        }
+
+        const res = await getEmployees(params);
+
+        setSearchResults(
+          res.data?.items || []
+        );
+      } catch (err) {
+        console.error(
+          "Failed to search employees:",
+          err
+        );
+      } finally {
+        setSearchLoading(false);
       }
-      const res = await getEmployees(params);
-      setSearchResults(res.data?.items || []);
-    } catch (err) {
-      console.error("Failed to search employees:", err);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
-  // Initial load of default employee options
   useEffect(() => {
     fetchEmployeeOptions("");
   }, [fetchEmployeeOptions]);
 
-  // Debounced search on typing
+  /* =========================================================
+     DEBOUNCED SEARCH
+  ========================================================= */
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (dropdownOpen) {
         fetchEmployeeOptions(searchTerm);
       }
     }, 250);
+
     return () => clearTimeout(timer);
-  }, [searchTerm, dropdownOpen, fetchEmployeeOptions]);
+  }, [
+    searchTerm,
+    dropdownOpen,
+    fetchEmployeeOptions,
+  ]);
 
-  // Fetch balances for selected employee & year
-  const fetchBalances = useCallback(async (employeeId, year) => {
-    if (!employeeId) return;
-    setBalancesLoading(true);
-    setHasSearched(true);
+  /* =========================================================
+     FETCH BALANCES
+  ========================================================= */
 
-    try {
-      const res = await getEmployeeBalances(employeeId, { year });
-      setBalances(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch employee balances", err);
-      const errText = err.response?.data?.detail || "Failed to load leave balances.";
-      showError(errText);
-      setBalances([]);
-    } finally {
-      setBalancesLoading(false);
-    }
-  }, []);
+  const fetchBalances = useCallback(
+    async (employeeId, year) => {
+      if (!employeeId) return;
 
-  // Handle employee selection
+      setBalancesLoading(true);
+      setHasSearched(true);
+
+      try {
+        const res =
+          await getEmployeeBalances(
+            employeeId,
+            { year }
+          );
+
+        setBalances(
+          res.data || []
+        );
+      } catch (err) {
+        console.error(
+          "Failed to fetch employee balances",
+          err
+        );
+
+        const errText =
+          err.response?.data?.detail ||
+          "Failed to load leave balances.";
+
+        showError(errText);
+        setBalances([]);
+      } finally {
+        setBalancesLoading(false);
+      }
+    },
+    []
+  );
+
+  /* =========================================================
+     SELECT EMPLOYEE
+  ========================================================= */
+
   const handleSelectEmployee = (emp) => {
     setSelectedEmployee(emp);
-    setSearchTerm(`${emp.first_name} ${emp.last_name} (${emp.employee_code})`);
+
+    setSearchTerm(
+      `${emp.first_name} ${emp.last_name} (${emp.employee_code})`
+    );
+
     setDropdownOpen(false);
-    fetchBalances(emp.id, selectedYear);
+
+    fetchBalances(
+      emp.id,
+      selectedYear
+    );
   };
 
-  // Handle year change
+  /* =========================================================
+     CHANGE YEAR
+  ========================================================= */
+
   const handleYearChange = (e) => {
-    const newYear = Number(e.target.value);
+    const newYear = Number(
+      e.target.value
+    );
+
     setSelectedYear(newYear);
+
     if (selectedEmployee) {
-      fetchBalances(selectedEmployee.id, newYear);
+      fetchBalances(
+        selectedEmployee.id,
+        newYear
+      );
     }
   };
 
-  // Open Edit Modal
-  const openEditModal = (b) => {
-    setEditingBalance(b);
-    setAllocatedDays(String(b.allocated_days));
-    setUsedDays(String(b.used_days));
-    setPendingDays(String(b.pending_days));
+  /* =========================================================
+     OPEN EDIT MODAL
+  ========================================================= */
+
+  const openEditModal = (balance) => {
+    setEditingBalance(balance);
+
+    setAllocatedDays(
+      String(balance.allocated_days)
+    );
+
+    setUsedDays(
+      String(balance.used_days)
+    );
+
+    setPendingDays(
+      String(balance.pending_days)
+    );
   };
 
-  // Handle Submit Update Balance
+  /* =========================================================
+     UPDATE BALANCE
+  ========================================================= */
+
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    if (!editingBalance || !selectedEmployee) return;
+
+    if (
+      !editingBalance ||
+      !selectedEmployee
+    ) {
+      return;
+    }
 
     setSubmitting(true);
 
@@ -143,430 +268,1846 @@ function LeaveBalances() {
         selectedEmployee.id,
         editingBalance.leave_type_id,
         {
-          allocated_days: Number(allocatedDays),
-          used_days: Number(editingBalance.used_days),
-          pending_days: Number(editingBalance.pending_days),
+          allocated_days:
+            Number(allocatedDays),
+
+          used_days:
+            Number(
+              editingBalance.used_days
+            ),
+
+          pending_days:
+            Number(
+              editingBalance.pending_days
+            ),
         },
-        { year: selectedYear }
+        {
+          year: selectedYear,
+        }
       );
 
-      showSuccess("Leave balance updated successfully.");
+      showSuccess(
+        "Leave balance updated successfully."
+      );
+
       setEditingBalance(null);
-      fetchBalances(selectedEmployee.id, selectedYear);
+
+      fetchBalances(
+        selectedEmployee.id,
+        selectedYear
+      );
     } catch (err) {
-      console.error("Failed to update balance", err);
-      const errText = err.response?.data?.detail || "Failed to update leave balance.";
+      console.error(
+        "Failed to update balance",
+        err
+      );
+
+      const errText =
+        err.response?.data?.detail ||
+        "Failed to update leave balance.";
+
       showError(errText);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
+  /* =========================================================
+     YEAR OPTIONS
+  ========================================================= */
 
-  // Calculate live remaining balance for edit modal
-  const calcAllocated = Number(allocatedDays) || 0;
-  const calcUsed = Number(editingBalance?.used_days) || 0;
-  const calcPending = Number(editingBalance?.pending_days) || 0;
-  const calculatedRemaining = Number((calcAllocated - calcUsed - calcPending).toFixed(2));
+  const yearOptions = [
+    currentYear,
+    currentYear - 1,
+    currentYear - 2,
+  ];
+
+  /* =========================================================
+     EDIT MODAL CALCULATION
+  ========================================================= */
+
+  const calcAllocated =
+    Number(allocatedDays) || 0;
+
+  const calcUsed =
+    Number(
+      editingBalance?.used_days
+    ) || 0;
+
+  const calcPending =
+    Number(
+      editingBalance?.pending_days
+    ) || 0;
+
+  const calculatedRemaining =
+    Number(
+      (
+        calcAllocated -
+        calcUsed -
+        calcPending
+      ).toFixed(2)
+    );
+
+  /* =========================================================
+     DERIVED SUMMARY
+  ========================================================= */
+
+  const totalAllocated = balances.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.allocated_days || 0),
+    0
+  );
+
+  const totalUsed = balances.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.used_days || 0),
+    0
+  );
+
+  const totalPending = balances.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.pending_days || 0),
+    0
+  );
+
+  const totalRemaining = balances.reduce(
+    (sum, item) => {
+      const remaining =
+        item.remaining_days ??
+        (
+          Number(item.allocated_days || 0) -
+          Number(item.used_days || 0) -
+          Number(item.pending_days || 0)
+        );
+
+      return sum + Number(remaining);
+    },
+    0
+  );
 
   return (
     <AppLayout title="Employee Leave Balances">
       <div style={styles.container}>
-        <BackToDashboard to="/hr/leave-types" role="HR" icon={ArrowLeft} />
+        {/* =================================================
+            BACK NAVIGATION
+        ================================================= */}
 
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Employee Leave Balances</h1>
-            <p style={styles.subtitle}>
-              Search employee records to view and adjust annual leave balance allocations
+        <BackToDashboard
+          to="/hr/leave-types"
+          role="HR"
+          icon={ArrowLeft}
+        />
+
+        {/* =================================================
+            HERO
+        ================================================= */}
+
+        <section style={styles.hero}>
+          <div style={styles.heroLeft}>
+            <div style={styles.eyebrow}>
+              <span
+                style={styles.eyebrowLine}
+              />
+              HR CONFIGURATION
+            </div>
+
+            <h1 style={styles.heroTitle}>
+              Employee Leave Balances
+            </h1>
+
+            <p style={styles.heroSubtitle}>
+              Search employee records, review annual
+              leave allocations, and manage available
+              balances from a centralized HR workspace.
             </p>
-          </div>
-        </div>
 
-        {/* Top Control Bar: Employee Search & Year Filter */}
-        <div style={styles.controlCard}>
-          <div style={styles.controlRow}>
-            {/* Search Input Control */}
-            <div style={styles.searchContainer} ref={searchRef}>
-              <label style={styles.controlLabel}>Select Employee</label>
-              <div style={styles.inputWrapper}>
-                <Search size={18} style={styles.searchIcon} />
+            <div style={styles.heroMeta}>
+              <div style={styles.heroMetaItem}>
+                <Users size={15} />
+                Employee Records
+              </div>
+
+              <span
+                style={styles.heroDivider}
+              />
+
+              <div style={styles.heroMetaItem}>
+                <WalletCards size={15} />
+                Leave Allocation
+              </div>
+
+              <span
+                style={styles.heroDivider}
+              />
+
+              <div style={styles.heroMetaItem}>
+                <ShieldCheck size={15} />
+                HR Controlled
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.heroPanel}>
+            <div style={styles.heroPanelIcon}>
+              <WalletCards size={25} />
+            </div>
+
+            <span
+              style={styles.heroPanelLabel}
+            >
+              ALLOCATION YEAR
+            </span>
+
+            <strong
+              style={styles.heroPanelYear}
+            >
+              {selectedYear}
+            </strong>
+
+            <span
+              style={styles.heroPanelText}
+            >
+              Select an employee below to manage
+              their leave allocation.
+            </span>
+          </div>
+        </section>
+
+        {/* =================================================
+            EMPLOYEE EXPLORER
+        ================================================= */}
+
+        <section style={styles.explorer}>
+          <div style={styles.explorerHeader}>
+            <div>
+              <span
+                style={styles.sectionEyebrow}
+              >
+                EMPLOYEE EXPLORER
+              </span>
+
+              <h2
+                style={styles.sectionTitle}
+              >
+                Select Employee
+              </h2>
+
+              <p
+                style={styles.sectionDescription}
+              >
+                Find an employee and choose the
+                allocation year to view their leave
+                balances.
+              </p>
+            </div>
+
+            <div style={styles.explorerBadge}>
+              <Search size={14} />
+              Search & Review
+            </div>
+          </div>
+
+          <div style={styles.explorerControls}>
+            {/* Employee Search */}
+
+            <div
+              style={styles.searchContainer}
+              ref={searchRef}
+            >
+              <label
+                style={styles.controlLabel}
+              >
+                Employee
+              </label>
+
+              <div
+                style={styles.searchWrapper}
+              >
+                <Search
+                  size={18}
+                  style={styles.searchIcon}
+                />
+
                 <input
                   type="text"
                   style={styles.searchInput}
-                  placeholder="Search by name, employee code, or email..."
+                  placeholder="Search name, employee code, or email..."
                   value={searchTerm}
-                  onFocus={() => setDropdownOpen(true)}
+                  onFocus={() =>
+                    setDropdownOpen(true)
+                  }
                   onChange={(e) => {
-                    setSearchTerm(e.target.value);
+                    setSearchTerm(
+                      e.target.value
+                    );
+
                     setDropdownOpen(true);
                   }}
                   aria-label="Search employee"
                 />
-                <ChevronDown size={18} style={styles.dropdownChevron} />
+
+                <ChevronDown
+                  size={17}
+                  style={
+                    styles.searchChevron
+                  }
+                />
               </div>
 
-              {/* Autocomplete Dropdown List */}
+              {/* Dropdown */}
+
               {dropdownOpen && (
-                <div style={styles.dropdownMenu}>
+                <div
+                  style={styles.dropdown}
+                >
+                  <div
+                    style={
+                      styles.dropdownHeader
+                    }
+                  >
+                    <span>
+                      Employee Directory
+                    </span>
+
+                    <span>
+                      {searchResults.length}
+                    </span>
+                  </div>
+
                   {searchLoading ? (
-                    <div style={styles.dropdownMessage}>Searching employees...</div>
-                  ) : searchResults.length === 0 ? (
-                    <div style={styles.dropdownMessage}>No matching employees found</div>
+                    <div
+                      style={
+                        styles.dropdownMessage
+                      }
+                    >
+                      <span
+                        style={
+                          styles.smallSpinner
+                        }
+                      />
+
+                      Searching employees...
+                    </div>
+                  ) : searchResults.length ===
+                    0 ? (
+                    <div
+                      style={
+                        styles.dropdownMessage
+                      }
+                    >
+                      No matching employees found
+                    </div>
                   ) : (
-                    searchResults.map((emp) => (
-                      <div
-                        key={emp.id}
-                        style={{
-                          ...styles.dropdownItem,
-                          backgroundColor:
-                            selectedEmployee?.id === emp.id
-                              ? "var(--bg-surface-elevated)"
-                              : "transparent",
-                        }}
-                        onClick={() => handleSelectEmployee(emp)}
-                      >
-                        <div style={styles.itemAvatar}>
-                          {emp.profile_photo_url ? (
-                            <img
-                              src={emp.profile_photo_url}
-                              alt={emp.first_name}
-                              style={styles.avatarImg}
-                            />
-                          ) : (
-                            <UserRound size={18} style={{ color: "var(--text-secondary)" }} />
-                          )}
-                        </div>
-                        <div style={styles.itemMeta}>
-                          <span style={styles.itemName}>
-                            {emp.first_name} {emp.last_name}
-                          </span>
-                          <span style={styles.itemSubText}>
-                            {emp.employee_code} &bull; {emp.email}
-                          </span>
-                        </div>
-                      </div>
-                    ))
+                    searchResults.map(
+                      (emp) => (
+                        <button
+                          type="button"
+                          key={emp.id}
+                          style={{
+                            ...styles.dropdownItem,
+                            backgroundColor:
+                              selectedEmployee?.id ===
+                              emp.id
+                                ? "#edf6ef"
+                                : "#ffffff",
+                          }}
+                          onClick={() =>
+                            handleSelectEmployee(
+                              emp
+                            )
+                          }
+                        >
+                          <div
+                            style={
+                              styles.itemAvatar
+                            }
+                          >
+                            {emp.profile_photo_url ? (
+                              <img
+                                src={
+                                  emp.profile_photo_url
+                                }
+                                alt={
+                                  emp.first_name
+                                }
+                                style={
+                                  styles.avatarImg
+                                }
+                              />
+                            ) : (
+                              <UserRound
+                                size={17}
+                                color="#6f8175"
+                              />
+                            )}
+                          </div>
+
+                          <div
+                            style={
+                              styles.itemMeta
+                            }
+                          >
+                            <strong
+                              style={
+                                styles.itemName
+                              }
+                            >
+                              {emp.first_name}{" "}
+                              {emp.last_name}
+                            </strong>
+
+                            <span
+                              style={
+                                styles.itemSubText
+                              }
+                            >
+                              {
+                                emp.employee_code
+                              }{" "}
+                              •{" "}
+                              {emp.email}
+                            </span>
+                          </div>
+
+                          <ChevronDown
+                            size={15}
+                            style={
+                              styles.itemArrow
+                            }
+                          />
+                        </button>
+                      )
+                    )
                   )}
                 </div>
               )}
             </div>
 
-            {/* Year Select Filter */}
-            <div style={styles.yearContainer}>
-              <label style={styles.controlLabel}>Allocation Year</label>
-              <div style={styles.selectWrapper}>
-                <CalendarDays size={18} style={styles.selectIcon} />
+            {/* Year */}
+
+            <div
+              style={styles.yearContainer}
+            >
+              <label
+                style={styles.controlLabel}
+              >
+                Allocation Year
+              </label>
+
+              <div
+                style={styles.yearWrapper}
+              >
+                <CalendarDays
+                  size={17}
+                  style={styles.yearIcon}
+                />
+
                 <select
                   style={styles.yearSelect}
                   value={selectedYear}
-                  onChange={handleYearChange}
+                  onChange={
+                    handleYearChange
+                  }
                   aria-label="Select year"
                 >
-                  {yearOptions.map((yr) => (
-                    <option key={yr} value={yr}>
-                      {yr}
-                    </option>
-                  ))}
+                  {yearOptions.map(
+                    (year) => (
+                      <option
+                        key={year}
+                        value={year}
+                      >
+                        {year}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Selected Employee Summary Banner */}
+        {/* =================================================
+            SELECTED EMPLOYEE
+        ================================================= */}
+
         {selectedEmployee && (
-          <div style={styles.summaryCard}>
-            <div style={styles.summaryLeft}>
-              <div style={styles.summaryAvatar}>
+          <section
+            style={styles.employeeCard}
+          >
+            <div
+              style={styles.employeeIdentity}
+            >
+              <div
+                style={styles.employeeAvatar}
+              >
                 {selectedEmployee.profile_photo_url ? (
                   <img
-                    src={selectedEmployee.profile_photo_url}
-                    alt={selectedEmployee.first_name}
+                    src={
+                      selectedEmployee.profile_photo_url
+                    }
+                    alt={
+                      selectedEmployee.first_name
+                    }
                     style={styles.avatarImg}
                   />
                 ) : (
-                  <span style={styles.summaryInitials}>
+                  <span
+                    style={
+                      styles.employeeInitials
+                    }
+                  >
                     {selectedEmployee.first_name?.[0]}
                     {selectedEmployee.last_name?.[0]}
                   </span>
                 )}
               </div>
+
               <div>
-                <h2 style={styles.summaryName}>
-                  {selectedEmployee.first_name} {selectedEmployee.last_name}
+                <span
+                  style={styles.employeeLabel}
+                >
+                  SELECTED EMPLOYEE
+                </span>
+
+                <h2
+                  style={
+                    styles.employeeName
+                  }
+                >
+                  {selectedEmployee.first_name}{" "}
+                  {selectedEmployee.last_name}
                 </h2>
-                <div style={styles.summaryBadges}>
-                  <span style={styles.codeBadge}>{selectedEmployee.employee_code}</span>
-                  <span style={styles.emailText}>{selectedEmployee.email}</span>
+
+                <div
+                  style={
+                    styles.employeeDetails
+                  }
+                >
+                  <span
+                    style={styles.codeBadge}
+                  >
+                    {
+                      selectedEmployee.employee_code
+                    }
+                  </span>
+
+                  <span
+                    style={styles.emailText}
+                  >
+                    {selectedEmployee.email}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div style={styles.summaryRight}>
+            <div
+              style={styles.employeeActions}
+            >
+              <div
+                style={styles.selectedYearBox}
+              >
+                <span>YEAR</span>
+                <strong>
+                  {selectedYear}
+                </strong>
+              </div>
+
               <button
-                style={{
-                  ...styles.refreshBtn,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.375rem",
-                }}
-                onClick={() => fetchBalances(selectedEmployee.id, selectedYear)}
+                type="button"
+                style={
+                  styles.refreshButton
+                }
+                onClick={() =>
+                  fetchBalances(
+                    selectedEmployee.id,
+                    selectedYear
+                  )
+                }
                 disabled={balancesLoading}
               >
-                <RefreshCw size={15} className={balancesLoading ? "spin" : ""} /> Refresh
+                <RefreshCw
+                  size={15}
+                  className={
+                    balancesLoading
+                      ? "leave-balance-spin"
+                      : ""
+                  }
+                />
+
+                Refresh
               </button>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Loading Skeleton */}
+        {/* =================================================
+            LOADING
+        ================================================= */}
+
         {balancesLoading ? (
-          <div style={styles.skeletonContainer}>
-            <div style={styles.skeletonRow} />
-            <div style={styles.skeletonRow} />
-            <div style={styles.skeletonRow} />
+          <div style={styles.loadingArea}>
+            <div style={styles.loadingHeader}>
+              <div
+                style={
+                  styles.loadingBarLarge
+                }
+              />
+
+              <div
+                style={
+                  styles.loadingBarSmall
+                }
+              />
+            </div>
+
+            <div
+              style={styles.loadingGrid}
+            >
+              <div
+                style={styles.loadingCard}
+              />
+              <div
+                style={styles.loadingCard}
+              />
+              <div
+                style={styles.loadingCard}
+              />
+            </div>
+
+            <div
+              style={styles.loadingTable}
+            />
           </div>
         ) : !selectedEmployee ? (
-          /* Initial Prompt State */
-          <div style={styles.promptState}>
-            <Search size={40} style={{ color: "var(--text-muted)", marginBottom: "0.75rem" }} />
-            <h3 style={styles.promptTitle}>No Employee Selected</h3>
-            <p style={styles.promptSubtitle}>
-              Use the search control above to find an employee and display their leave balances.
+          /* =================================================
+             INITIAL STATE
+          ================================================= */
+
+          <section
+            style={styles.initialState}
+          >
+            <div
+              style={styles.initialIcon}
+            >
+              <Search size={25} />
+            </div>
+
+            <span
+              style={styles.initialEyebrow}
+            >
+              GET STARTED
+            </span>
+
+            <h3
+              style={styles.initialTitle}
+            >
+              Select an Employee
+            </h3>
+
+            <p
+              style={styles.initialText}
+            >
+              Search for an employee above to view
+              their annual leave allocation and
+              balance details.
             </p>
-          </div>
-        ) : balances.length === 0 && hasSearched ? (
-          /* Empty State */
-          <div style={styles.emptyState}>
-            <WalletCards size={44} style={{ color: "var(--text-muted)", marginBottom: "0.75rem" }} />
-            <h3 style={styles.emptyTitle}>No Leave Balances Found</h3>
-            <p style={styles.emptySubtitle}>
-              No leave balance has been configured for {selectedEmployee.first_name}{" "}
-              {selectedEmployee.last_name} for the year {selectedYear}.
+          </section>
+        ) : balances.length === 0 &&
+          hasSearched ? (
+          /* =================================================
+             EMPTY STATE
+          ================================================= */
+
+          <section
+            style={styles.emptyState}
+          >
+            <div
+              style={styles.emptyIcon}
+            >
+              <WalletCards size={25} />
+            </div>
+
+            <span
+              style={styles.emptyEyebrow}
+            >
+              NO ALLOCATION
+            </span>
+
+            <h3
+              style={styles.emptyTitle}
+            >
+              No Leave Balances Found
+            </h3>
+
+            <p
+              style={styles.emptyText}
+            >
+              No leave balance has been configured
+              for{" "}
+              <strong>
+                {selectedEmployee.first_name}{" "}
+                {selectedEmployee.last_name}
+              </strong>{" "}
+              for the year{" "}
+              <strong>{selectedYear}</strong>.
             </p>
-          </div>
+          </section>
         ) : (
-          /* Balances Summary Container */
-          <div>
-            {/* Desktop Table View (≥768px) */}
-            <div className="employee-desktop-table" style={styles.tableWrapper}>
-              <div style={styles.tableTitleHeader}>
-                <h3 style={styles.tableTitle}>
-                  Leave Allocation Summary ({selectedYear})
-                </h3>
-              </div>
-              <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Leave Type</th>
-                      <th style={styles.th}>Year</th>
-                      <th style={styles.th}>Allocated Days</th>
-                      <th style={styles.th}>Used Days</th>
-                      <th style={styles.th}>Pending Requests</th>
-                      <th style={styles.th}>Remaining</th>
-                      <th style={styles.th}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {balances.map((b) => {
-                      const remaining = b.remaining_days ?? (Number(b.allocated_days) - Number(b.used_days) - Number(b.pending_days));
-                      return (
-                        <tr key={b.id || b.leave_type_id} style={styles.tr}>
-                          <td style={styles.td}>
-                            <strong>{b.leave_type_name || "Leave"}</strong>
-                          </td>
-                          <td style={styles.td}>{b.year}</td>
-                          <td style={styles.td}>{b.allocated_days}</td>
-                          <td style={styles.td}>{b.used_days}</td>
-                          <td style={styles.td}>{b.pending_days}</td>
-                          <td style={styles.td}>
-                            <span
-                              style={{
-                                fontWeight: "700",
-                                color: remaining > 0 ? "var(--success-color)" : "var(--danger-color)",
-                              }}
-                            >
-                              {remaining}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <button
-                              style={{
-                                ...styles.editBtn,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "0.3rem",
-                              }}
-                              onClick={() => openEditModal(b)}
-                            >
-                              <Pencil size={13} /> Edit Balance
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <>
+            {/* =================================================
+                SUMMARY CARDS
+            ================================================= */}
 
-            {/* Mobile Cards View (<768px) */}
-            <div className="employee-mobile-cards">
-              <div style={{ padding: "0 0 0.5rem 0" }}>
-                <h3 style={{ ...styles.tableTitle, fontSize: "1.1rem" }}>
-                  Leave Allocation Summary ({selectedYear})
-                </h3>
+            <section style={styles.summarySection}>
+              <div style={styles.sectionHeader}>
+                <div>
+                  <span
+                    style={
+                      styles.sectionEyebrow
+                    }
+                  >
+                    BALANCE OVERVIEW
+                  </span>
+
+                  <h2
+                    style={
+                      styles.sectionTitle
+                    }
+                  >
+                    Annual Allocation Summary
+                  </h2>
+                </div>
               </div>
-              {balances.map((b) => {
-                const remaining = b.remaining_days ?? (Number(b.allocated_days) - Number(b.used_days) - Number(b.pending_days));
-                return (
-                  <div key={b.id || b.leave_type_id} style={styles.mobileCard}>
-                    <div style={styles.mobileCardHeader}>
-                      <div>
-                        <h4 style={styles.mobileCardTitle}>{b.leave_type_name || "Leave"}</h4>
-                        <span style={styles.mobileCardSub}>Year {b.year}</span>
-                      </div>
-                      <button
-                        style={{
-                          ...styles.editBtn,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.3rem",
-                        }}
-                        onClick={() => openEditModal(b)}
-                      >
-                        <Pencil size={13} /> Edit Balance
-                      </button>
-                    </div>
 
-                    <div style={styles.mobileCardGrid}>
-                      <div style={styles.mobileMetricBox}>
-                        <span style={styles.mobileMetricLabel}>Allocated</span>
-                        <span style={styles.mobileMetricValue}>{b.allocated_days}</span>
-                      </div>
-                      <div style={styles.mobileMetricBox}>
-                        <span style={styles.mobileMetricLabel}>Used</span>
-                        <span style={styles.mobileMetricValue}>{b.used_days}</span>
-                      </div>
-                      <div style={styles.mobileMetricBox}>
-                        <span style={styles.mobileMetricLabel}>Pending Requests</span>
-                        <span style={styles.mobileMetricValue}>{b.pending_days}</span>
-                      </div>
-                      <div style={styles.mobileMetricBox}>
-                        <span style={styles.mobileMetricLabel}>Remaining</span>
-                        <span
-                          style={{
-                            ...styles.mobileMetricValue,
-                            fontWeight: "700",
-                            color: remaining > 0 ? "var(--success-color)" : "var(--danger-color)",
-                          }}
-                        >
-                          {remaining}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Edit Balance Modal */}
-        {editingBalance && (
-          <div style={styles.modalOverlay} onClick={() => setEditingBalance(null)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>
-                  Update Balance — {editingBalance.leave_type_name} ({selectedYear})
-                </h3>
-                <button
-                  type="button"
-                  style={styles.closeBtn}
-                  onClick={() => setEditingBalance(null)}
-                  aria-label="Close"
+              <div
+                className="leave-balance-summary-grid"
+                style={styles.summaryGrid}
+              >
+                <div
+                  style={styles.summaryMetric}
                 >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleUpdateSubmit} style={styles.formContent}>
-                <div style={styles.modalBody}>
-                  <p style={styles.modalEmployeeMeta}>
-                    Updating leave balance for{" "}
-                    <strong>
-                      {selectedEmployee?.first_name} {selectedEmployee?.last_name}
-                    </strong>{" "}
-                    ({selectedEmployee?.employee_code})
-                  </p>
-
-                  {/* Allocated Days (Editable) */}
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Allocated Days *</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      style={styles.modalInput}
-                      value={allocatedDays}
-                      onChange={(e) => setAllocatedDays(e.target.value)}
-                      required
+                  <div
+                    style={{
+                      ...styles.metricIcon,
+                      backgroundColor:
+                        "#e7f3ea",
+                      color: "#28613d",
+                    }}
+                  >
+                    <WalletCards
+                      size={19}
                     />
                   </div>
 
-                  {/* Used Days (Read-Only) */}
-                  <div style={styles.formGroup}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <label style={styles.label}>Used Days</label>
-                      <span style={styles.readOnlyBadge}>Read-only</span>
-                    </div>
-                    <input
-                      type="text"
-                      readOnly
-                      style={styles.modalInputReadOnly}
-                      value={editingBalance.used_days}
-                      tabIndex="-1"
-                    />
-                  </div>
+                  <div>
+                    <span
+                      style={
+                        styles.metricLabel
+                      }
+                    >
+                      TOTAL ALLOCATED
+                    </span>
 
-                  {/* Pending Requests (Read-Only) */}
-                  <div style={styles.formGroup}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <label style={styles.label}>Pending Requests</label>
-                      <span style={styles.readOnlyBadge}>Read-only</span>
-                    </div>
-                    <input
-                      type="text"
-                      readOnly
-                      style={styles.modalInputReadOnly}
-                      value={editingBalance.pending_days}
-                      tabIndex="-1"
-                    />
-                  </div>
+                    <strong
+                      style={
+                        styles.metricValue
+                      }
+                    >
+                      {totalAllocated}
+                    </strong>
 
-                  {/* Calculated Remaining Card */}
-                  <div style={styles.calculatedCard}>
-                    <span style={styles.calculatedLabel}>Calculated Remaining</span>
-                    <span style={styles.calculatedValue}>
-                      {calculatedRemaining} {Math.abs(calculatedRemaining) === 1 ? "day" : "days"}
+                    <span
+                      style={
+                        styles.metricHint
+                      }
+                    >
+                      Days assigned
                     </span>
                   </div>
                 </div>
 
-                <div style={styles.modalFooter}>
-                  <div className="hrms-modal-footer-actions">
+                <div
+                  style={styles.summaryMetric}
+                >
+                  <div
+                    style={{
+                      ...styles.metricIcon,
+                      backgroundColor:
+                        "#f1f4f2",
+                      color: "#607068",
+                    }}
+                  >
+                    <TrendingUp
+                      size={19}
+                    />
+                  </div>
+
+                  <div>
+                    <span
+                      style={
+                        styles.metricLabel
+                      }
+                    >
+                      USED
+                    </span>
+
+                    <strong
+                      style={
+                        styles.metricValue
+                      }
+                    >
+                      {totalUsed}
+                    </strong>
+
+                    <span
+                      style={
+                        styles.metricHint
+                      }
+                    >
+                      Days consumed
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={styles.summaryMetric}
+                >
+                  <div
+                    style={{
+                      ...styles.metricIcon,
+                      backgroundColor:
+                        "#fff6df",
+                      color: "#956c13",
+                    }}
+                  >
+                    <Clock3 size={19} />
+                  </div>
+
+                  <div>
+                    <span
+                      style={
+                        styles.metricLabel
+                      }
+                    >
+                      PENDING
+                    </span>
+
+                    <strong
+                      style={
+                        styles.metricValue
+                      }
+                    >
+                      {totalPending}
+                    </strong>
+
+                    <span
+                      style={
+                        styles.metricHint
+                      }
+                    >
+                      Awaiting approval
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={styles.summaryMetric}
+                >
+                  <div
+                    style={{
+                      ...styles.metricIcon,
+                      backgroundColor:
+                        totalRemaining > 0
+                          ? "#e7f3ea"
+                          : "#fbeaea",
+                      color:
+                        totalRemaining > 0
+                          ? "#28613d"
+                          : "#a33b3b",
+                    }}
+                  >
+                    <CheckCircle2
+                      size={19}
+                    />
+                  </div>
+
+                  <div>
+                    <span
+                      style={
+                        styles.metricLabel
+                      }
+                    >
+                      REMAINING
+                    </span>
+
+                    <strong
+                      style={{
+                        ...styles.metricValue,
+                        color:
+                          totalRemaining > 0
+                            ? "#28613d"
+                            : "#a33b3b",
+                      }}
+                    >
+                      {totalRemaining}
+                    </strong>
+
+                    <span
+                      style={
+                        styles.metricHint
+                      }
+                    >
+                      Available days
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* =================================================
+                DESKTOP TABLE
+            ================================================= */}
+
+            <section
+              className="employee-desktop-table"
+              style={styles.tableCard}
+            >
+              <div
+                style={styles.tableHeader}
+              >
+                <div>
+                  <span
+                    style={
+                      styles.sectionEyebrow
+                    }
+                  >
+                    LEAVE ALLOCATION
+                  </span>
+
+                  <h2
+                    style={
+                      styles.tableTitle
+                    }
+                  >
+                    Leave Balance Directory
+                  </h2>
+                </div>
+
+                <div
+                  style={
+                    styles.tableYearBadge
+                  }
+                >
+                  <CalendarDays
+                    size={14}
+                  />
+                  {selectedYear}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  overflowX: "auto",
+                }}
+              >
+                <table
+                  style={styles.table}
+                >
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>
+                        Leave Type
+                      </th>
+
+                      <th style={styles.th}>
+                        Year
+                      </th>
+
+                      <th style={styles.th}>
+                        Allocated
+                      </th>
+
+                      <th style={styles.th}>
+                        Used
+                      </th>
+
+                      <th style={styles.th}>
+                        Pending
+                      </th>
+
+                      <th style={styles.th}>
+                        Remaining
+                      </th>
+
+                      <th
+                        style={{
+                          ...styles.th,
+                          textAlign: "right",
+                        }}
+                      >
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {balances.map(
+                      (balance) => {
+                        const remaining =
+                          balance.remaining_days ??
+                          (
+                            Number(
+                              balance.allocated_days ||
+                                0
+                            ) -
+                            Number(
+                              balance.used_days ||
+                                0
+                            ) -
+                            Number(
+                              balance.pending_days ||
+                                0
+                            )
+                          );
+
+                        return (
+                          <tr
+                            key={
+                              balance.id ||
+                              balance.leave_type_id
+                            }
+                            style={styles.tr}
+                          >
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              <div
+                                style={
+                                  styles.leaveTypeCell
+                                }
+                              >
+                                <div
+                                  style={
+                                    styles.leaveTypeIcon
+                                  }
+                                >
+                                  <WalletCards
+                                    size={16}
+                                  />
+                                </div>
+
+                                <strong
+                                  style={
+                                    styles.leaveTypeName
+                                  }
+                                >
+                                  {balance.leave_type_name ||
+                                    "Leave"}
+                                </strong>
+                              </div>
+                            </td>
+
+                            <td
+                              style={
+                                styles.tdMuted
+                              }
+                            >
+                              {balance.year}
+                            </td>
+
+                            <td
+                              style={
+                                styles.tdNumber
+                              }
+                            >
+                              {balance.allocated_days}
+                            </td>
+
+                            <td
+                              style={
+                                styles.tdNumber
+                              }
+                            >
+                              {balance.used_days}
+                            </td>
+
+                            <td
+                              style={
+                                styles.tdNumber
+                              }
+                            >
+                              {balance.pending_days}
+                            </td>
+
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              <span
+                                style={{
+                                  ...styles.remainingBadge,
+                                  backgroundColor:
+                                    Number(
+                                      remaining
+                                    ) > 0
+                                      ? "#e8f5ec"
+                                      : "#fbeaea",
+                                  color:
+                                    Number(
+                                      remaining
+                                    ) > 0
+                                      ? "#28613d"
+                                      : "#a33b3b",
+                                }}
+                              >
+                                {remaining}
+                              </span>
+                            </td>
+
+                            <td
+                              style={{
+                                ...styles.td,
+                                textAlign:
+                                  "right",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                style={
+                                  styles.editButton
+                                }
+                                onClick={() =>
+                                  openEditModal(
+                                    balance
+                                  )
+                                }
+                              >
+                                <Pencil
+                                  size={14}
+                                />
+
+                                Edit Balance
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* =================================================
+                MOBILE CARDS
+            ================================================= */}
+
+            <section
+              className="employee-mobile-cards"
+              style={styles.mobileSection}
+            >
+              <div
+                style={styles.mobileSectionHeader}
+              >
+                <div>
+                  <span
+                    style={
+                      styles.sectionEyebrow
+                    }
+                  >
+                    LEAVE ALLOCATION
+                  </span>
+
+                  <h2
+                    style={
+                      styles.tableTitle
+                    }
+                  >
+                    Balance Directory
+                  </h2>
+                </div>
+
+                <span
+                  style={
+                    styles.tableYearBadge
+                  }
+                >
+                  {selectedYear}
+                </span>
+              </div>
+
+              {balances.map(
+                (balance) => {
+                  const remaining =
+                    balance.remaining_days ??
+                    (
+                      Number(
+                        balance.allocated_days ||
+                          0
+                      ) -
+                      Number(
+                        balance.used_days ||
+                          0
+                      ) -
+                      Number(
+                        balance.pending_days ||
+                          0
+                      )
+                    );
+
+                  return (
+                    <article
+                      key={
+                        balance.id ||
+                        balance.leave_type_id
+                      }
+                      style={
+                        styles.mobileCard
+                      }
+                    >
+                      <div
+                        style={
+                          styles.mobileCardHeader
+                        }
+                      >
+                        <div
+                          style={
+                            styles.mobileLeaveIdentity
+                          }
+                        >
+                          <div
+                            style={
+                              styles.leaveTypeIcon
+                            }
+                          >
+                            <WalletCards
+                              size={16}
+                            />
+                          </div>
+
+                          <div>
+                            <h3
+                              style={
+                                styles.mobileCardTitle
+                              }
+                            >
+                              {balance.leave_type_name ||
+                                "Leave"}
+                            </h3>
+
+                            <span
+                              style={
+                                styles.mobileCardYear
+                              }
+                            >
+                              Allocation Year{" "}
+                              {balance.year}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            ...styles.remainingBadge,
+                            backgroundColor:
+                              Number(
+                                remaining
+                              ) > 0
+                                ? "#e8f5ec"
+                                : "#fbeaea",
+                            color:
+                              Number(
+                                remaining
+                              ) > 0
+                                ? "#28613d"
+                                : "#a33b3b",
+                          }}
+                        >
+                          {remaining} left
+                        </span>
+                      </div>
+
+                      <div
+                        style={
+                          styles.mobileMetrics
+                        }
+                      >
+                        <div
+                          style={
+                            styles.mobileMetric
+                          }
+                        >
+                          <span>
+                            Allocated
+                          </span>
+
+                          <strong>
+                            {
+                              balance.allocated_days
+                            }
+                          </strong>
+                        </div>
+
+                        <div
+                          style={
+                            styles.mobileMetric
+                          }
+                        >
+                          <span>Used</span>
+
+                          <strong>
+                            {
+                              balance.used_days
+                            }
+                          </strong>
+                        </div>
+
+                        <div
+                          style={
+                            styles.mobileMetric
+                          }
+                        >
+                          <span>Pending</span>
+
+                          <strong>
+                            {
+                              balance.pending_days
+                            }
+                          </strong>
+                        </div>
+
+                        <div
+                          style={
+                            styles.mobileMetric
+                          }
+                        >
+                          <span>
+                            Remaining
+                          </span>
+
+                          <strong
+                            style={{
+                              color:
+                                Number(
+                                  remaining
+                                ) > 0
+                                  ? "#28613d"
+                                  : "#a33b3b",
+                            }}
+                          >
+                            {remaining}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        style={
+                          styles.mobileEditButton
+                        }
+                        onClick={() =>
+                          openEditModal(
+                            balance
+                          )
+                        }
+                      >
+                        <Pencil
+                          size={14}
+                        />
+
+                        Edit Balance
+                      </button>
+                    </article>
+                  );
+                }
+              )}
+            </section>
+          </>
+        )}
+
+        {/* =================================================
+            EDIT BALANCE MODAL
+        ================================================= */}
+
+        {editingBalance && (
+          <div
+            style={styles.modalOverlay}
+            onClick={() =>
+              !submitting &&
+              setEditingBalance(null)
+            }
+          >
+            <div
+              className="leave-balance-modal"
+              style={styles.modal}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
+              {/* Modal Header */}
+
+              <div
+                style={styles.modalHeader}
+              >
+                <div
+                  style={
+                    styles.modalHeaderLeft
+                  }
+                >
+                  <div
+                    style={styles.modalIcon}
+                  >
+                    <Calculator
+                      size={20}
+                    />
+                  </div>
+
+                  <div>
+                    <span
+                      style={
+                        styles.modalEyebrow
+                      }
+                    >
+                      HR BALANCE CONFIGURATION
+                    </span>
+
+                    <h2
+                      style={
+                        styles.modalTitle
+                      }
+                    >
+                      Update Leave Balance
+                    </h2>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  style={styles.closeButton}
+                  onClick={() =>
+                    !submitting &&
+                    setEditingBalance(
+                      null
+                    )
+                  }
+                  disabled={submitting}
+                  aria-label="Close"
+                >
+                  <X size={19} />
+                </button>
+              </div>
+
+              {/* Form */}
+
+              <form
+                onSubmit={
+                  handleUpdateSubmit
+                }
+                style={
+                  styles.formContent
+                }
+              >
+                <div
+                  style={styles.modalBody}
+                >
+                  {/* Employee Context */}
+
+                  <div
+                    style={
+                      styles.modalContext
+                    }
+                  >
+                    <div
+                      style={
+                        styles.modalContextIcon
+                      }
+                    >
+                      <UserRound
+                        size={17}
+                      />
+                    </div>
+
+                    <div>
+                      <span
+                        style={
+                          styles.modalContextLabel
+                        }
+                      >
+                        EMPLOYEE
+                      </span>
+
+                      <strong
+                        style={
+                          styles.modalContextName
+                        }
+                      >
+                        {
+                          selectedEmployee?.first_name
+                        }{" "}
+                        {
+                          selectedEmployee?.last_name
+                        }
+                      </strong>
+
+                      <span
+                        style={
+                          styles.modalContextCode
+                        }
+                      >
+                        {
+                          selectedEmployee?.employee_code
+                        }{" "}
+                        •{" "}
+                        {
+                          editingBalance.leave_type_name
+                        }{" "}
+                        • {selectedYear}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Allocation */}
+
+                  <div
+                    style={
+                      styles.formSection
+                    }
+                  >
+                    <div
+                      style={
+                        styles.formSectionHeader
+                      }
+                    >
+                      <div
+                        style={
+                          styles.formSectionNumber
+                        }
+                      >
+                        01
+                      </div>
+
+                      <div>
+                        <strong
+                          style={
+                            styles.formSectionTitle
+                          }
+                        >
+                          Leave Allocation
+                        </strong>
+
+                        <span
+                          style={
+                            styles.formSectionText
+                          }
+                        >
+                          Adjust the annual allocated
+                          leave days.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={
+                        styles.formGroup
+                      }
+                    >
+                      <label
+                        style={styles.label}
+                      >
+                        Allocated Days
+                        <span
+                          style={
+                            styles.required
+                          }
+                        >
+                          *
+                        </span>
+                      </label>
+
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        style={
+                          styles.modalInput
+                        }
+                        value={
+                          allocatedDays
+                        }
+                        onChange={(e) =>
+                          setAllocatedDays(
+                            e.target.value
+                          )
+                        }
+                        required
+                      />
+
+                      <span
+                        style={
+                          styles.helperText
+                        }
+                      >
+                        Use 0.5 increments for half-day
+                        allocation where applicable.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* System Values */}
+
+                  <div
+                    style={
+                      styles.formSection
+                    }
+                  >
+                    <div
+                      style={
+                        styles.formSectionHeader
+                      }
+                    >
+                      <div
+                        style={
+                          styles.formSectionNumber
+                        }
+                      >
+                        02
+                      </div>
+
+                      <div>
+                        <strong
+                          style={
+                            styles.formSectionTitle
+                          }
+                        >
+                          Current Usage
+                        </strong>
+
+                        <span
+                          style={
+                            styles.formSectionText
+                          }
+                        >
+                          These values are controlled by
+                          the leave system.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="leave-balance-system-grid"
+                      style={
+                        styles.systemGrid
+                      }
+                    >
+                      <div
+                        style={
+                          styles.readOnlyCard
+                        }
+                      >
+                        <div
+                          style={
+                            styles.readOnlyTop
+                          }
+                        >
+                          <span
+                            style={
+                              styles.readOnlyLabel
+                            }
+                          >
+                            USED DAYS
+                          </span>
+
+                          <span
+                            style={
+                              styles.readOnlyBadge
+                            }
+                          >
+                            Read-only
+                          </span>
+                        </div>
+
+                        <strong
+                          style={
+                            styles.readOnlyValue
+                          }
+                        >
+                          {
+                            editingBalance.used_days
+                          }
+                        </strong>
+                      </div>
+
+                      <div
+                        style={
+                          styles.readOnlyCard
+                        }
+                      >
+                        <div
+                          style={
+                            styles.readOnlyTop
+                          }
+                        >
+                          <span
+                            style={
+                              styles.readOnlyLabel
+                            }
+                          >
+                            PENDING
+                          </span>
+
+                          <span
+                            style={
+                              styles.readOnlyBadge
+                            }
+                          >
+                            Read-only
+                          </span>
+                        </div>
+
+                        <strong
+                          style={
+                            styles.readOnlyValue
+                          }
+                        >
+                          {
+                            editingBalance.pending_days
+                          }
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calculation */}
+
+                  <div
+                    style={
+                      styles.calculationCard
+                    }
+                  >
+                    <div
+                      style={
+                        styles.calculationIcon
+                      }
+                    >
+                      <Calculator
+                        size={18}
+                      />
+                    </div>
+
+                    <div
+                      style={
+                        styles.calculationContent
+                      }
+                    >
+                      <span
+                        style={
+                          styles.calculationLabel
+                        }
+                      >
+                        CALCULATED REMAINING
+                      </span>
+
+                      <strong
+                        style={{
+                          ...styles.calculationValue,
+                          color:
+                            calculatedRemaining >=
+                            0
+                              ? "#28613d"
+                              : "#a33b3b",
+                        }}
+                      >
+                        {calculatedRemaining}{" "}
+                        {Math.abs(
+                          calculatedRemaining
+                        ) === 1
+                          ? "day"
+                          : "days"}
+                      </strong>
+
+                      <span
+                        style={
+                          styles.calculationFormula
+                        }
+                      >
+                        Allocated − Used − Pending
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+
+                <div
+                  style={
+                    styles.modalFooter
+                  }
+                >
+                  <div
+                    style={
+                      styles.footerNote
+                    }
+                  >
+                    <ShieldCheck
+                      size={16}
+                    />
+
+                    <span>
+                      Only the annual allocation is
+                      editable.
+                    </span>
+                  </div>
+
+                  <div
+                    className="leave-balance-footer-actions"
+                    style={
+                      styles.footerActions
+                    }
+                  >
                     <button
                       type="button"
-                      style={styles.secondaryBtn}
-                      onClick={() => setEditingBalance(null)}
+                      style={
+                        styles.secondaryButton
+                      }
+                      onClick={() =>
+                        setEditingBalance(
+                          null
+                        )
+                      }
+                      disabled={submitting}
                     >
                       Cancel
                     </button>
-                    <button type="submit" style={styles.primaryBtn} disabled={submitting}>
-                      {submitting ? "Saving..." : "Save Changes"}
+
+                    <button
+                      type="submit"
+                      style={
+                        styles.primaryButton
+                      }
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <>
+                          <span
+                            style={
+                              styles.spinner
+                            }
+                          />
+
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={15} />
+                          Save Changes
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -574,439 +2115,1109 @@ function LeaveBalances() {
             </div>
           </div>
         )}
+
+        {/* =================================================
+            RESPONSIVE CSS
+        ================================================= */}
+
+        <style>
+          {`
+            .employee-mobile-cards {
+              display: none;
+            }
+
+            .leave-balance-modal {
+              width: min(94vw, 720px);
+            }
+
+            .leave-balance-spin {
+              animation: leaveBalanceSpin 0.8s linear infinite;
+            }
+
+            @keyframes leaveBalanceSpin {
+              from {
+                transform: rotate(0deg);
+              }
+
+              to {
+                transform: rotate(360deg);
+              }
+            }
+
+            @media (max-width: 1050px) {
+              .leave-balance-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              }
+            }
+
+            @media (max-width: 850px) {
+              .leave-balance-system-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+
+            @media (max-width: 768px) {
+              .employee-desktop-table {
+                display: none !important;
+              }
+
+              .employee-mobile-cards {
+                display: flex !important;
+                flex-direction: column;
+                gap: 0.75rem;
+              }
+
+              .leave-balance-summary-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+
+            @media (max-width: 650px) {
+              .leave-balance-modal {
+                width: calc(100vw - 20px) !important;
+                max-height: calc(100vh - 20px) !important;
+              }
+
+              .leave-balance-footer-actions {
+                width: 100%;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+              }
+
+              .leave-balance-footer-actions button {
+                width: 100%;
+              }
+            }
+
+            @media (max-width: 480px) {
+              .leave-balance-footer-actions {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}
+        </style>
       </div>
     </AppLayout>
   );
 }
 
+/* =========================================================
+   STYLES
+========================================================= */
+
 const styles = {
   container: {
-    padding: "0 0 2.5rem 0",
+    padding: "0 0 3rem",
+    color: "#2f4035",
   },
-  header: {
+
+  /* HERO */
+
+  hero: {
+    marginTop: "1rem",
     marginBottom: "1.5rem",
-    paddingBottom: "1rem",
-    borderBottom: "1px solid var(--border-color)",
+    padding: "2rem",
+    borderRadius: "20px",
+    background:
+      "linear-gradient(135deg, #173d28 0%, #285d3d 60%, #3b7350 100%)",
+    color: "#ffffff",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "stretch",
+    gap: "2rem",
+    boxShadow:
+      "0 15px 38px rgba(29, 70, 45, 0.17)",
   },
-  title: {
-    fontSize: "2rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
+
+  heroLeft: {
+    maxWidth: "700px",
+  },
+
+  eyebrow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    color: "#c9e1d0",
+    fontSize: "0.64rem",
+    fontWeight: "800",
+    letterSpacing: "0.14em",
+    marginBottom: "0.7rem",
+  },
+
+  eyebrowLine: {
+    width: "25px",
+    height: "2px",
+    borderRadius: "999px",
+    backgroundColor: "#b7d7c0",
+  },
+
+  heroTitle: {
     margin: 0,
+    fontSize: "2.35rem",
+    lineHeight: 1.1,
+    fontWeight: "800",
+    letterSpacing: "-0.035em",
   },
-  subtitle: {
-    fontSize: "0.95rem",
-    color: "var(--text-secondary)",
-    marginTop: "0.25rem",
-  },
-  controlCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.25rem",
-    marginBottom: "1.5rem",
-  },
-  controlRow: {
-    display: "flex",
-    gap: "1.25rem",
-    flexWrap: "wrap",
-    alignItems: "flex-end",
-  },
-  searchContainer: {
-    flex: "1 1 260px",
-    position: "relative",
-  },
-  yearContainer: {
-    width: "160px",
-  },
-  controlLabel: {
-    display: "block",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    color: "var(--text-secondary)",
-    marginBottom: "0.375rem",
-  },
-  inputWrapper: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-  },
-  searchIcon: {
-    position: "absolute",
-    left: "0.875rem",
-    color: "var(--text-muted)",
-    pointerEvents: "none",
-  },
-  dropdownChevron: {
-    position: "absolute",
-    right: "0.875rem",
-    color: "var(--text-muted)",
-    pointerEvents: "none",
-  },
-  searchInput: {
-    width: "100%",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.625rem 2.5rem 0.625rem 2.5rem",
+
+  heroSubtitle: {
+    margin: "0.8rem 0 0",
+    maxWidth: "650px",
+    color: "#d9e9dd",
     fontSize: "0.9rem",
-    outline: "none",
+    lineHeight: 1.7,
   },
-  selectWrapper: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-  },
-  selectIcon: {
-    position: "absolute",
-    left: "0.75rem",
-    color: "var(--text-muted)",
-    pointerEvents: "none",
-  },
-  yearSelect: {
-    width: "100%",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.625rem 0.75rem 0.625rem 2.25rem",
-    fontSize: "0.9rem",
-    outline: "none",
-    cursor: "pointer",
-  },
-  dropdownMenu: {
-    position: "absolute",
-    top: "calc(100% + 0.25rem)",
-    left: 0,
-    right: 0,
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
-    zIndex: 100,
-    maxHeight: "260px",
-    overflowY: "auto",
-  },
-  dropdownMessage: {
-    padding: "1rem",
-    textAlign: "center",
-    color: "var(--text-muted)",
-    fontSize: "0.875rem",
-  },
-  dropdownItem: {
+
+  heroMeta: {
     display: "flex",
     alignItems: "center",
     gap: "0.75rem",
-    padding: "0.75rem 1rem",
-    cursor: "pointer",
-    borderBottom: "1px solid var(--border-color)",
-    transition: "background-color 0.15s ease",
+    marginTop: "1.25rem",
+    flexWrap: "wrap",
   },
+
+  heroMetaItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    color: "#d5e7da",
+    fontSize: "0.67rem",
+    fontWeight: "650",
+  },
+
+  heroDivider: {
+    width: "1px",
+    height: "15px",
+    backgroundColor:
+      "rgba(255,255,255,0.25)",
+  },
+
+  heroPanel: {
+    width: "215px",
+    flexShrink: 0,
+    padding: "1rem",
+    borderRadius: "15px",
+    backgroundColor:
+      "rgba(255,255,255,0.10)",
+    border:
+      "1px solid rgba(255,255,255,0.14)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+  },
+
+  heroPanelIcon: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "11px",
+    backgroundColor:
+      "rgba(255,255,255,0.13)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "0.7rem",
+  },
+
+  heroPanelLabel: {
+    fontSize: "0.56rem",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+    color: "#c7dfcd",
+  },
+
+  heroPanelYear: {
+    fontSize: "1.6rem",
+    lineHeight: 1.1,
+    marginTop: "0.2rem",
+  },
+
+  heroPanelText: {
+    marginTop: "0.4rem",
+    fontSize: "0.64rem",
+    lineHeight: 1.45,
+    color: "#d5e7da",
+  },
+
+  /* EXPLORER */
+
+  explorer: {
+    backgroundColor: "#ffffff",
+    border: "1px solid #dce5df",
+    borderRadius: "16px",
+    padding: "1.25rem",
+    marginBottom: "1rem",
+    boxShadow:
+      "0 5px 20px rgba(31,59,41,0.035)",
+  },
+
+  explorerHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "1rem",
+    marginBottom: "1rem",
+  },
+
+  sectionEyebrow: {
+    display: "block",
+    color: "#7d8b82",
+    fontSize: "0.59rem",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+    marginBottom: "0.25rem",
+  },
+
+  sectionTitle: {
+    margin: 0,
+    color: "#33453a",
+    fontSize: "1.08rem",
+    fontWeight: "800",
+  },
+
+  sectionDescription: {
+    margin: "0.3rem 0 0",
+    color: "#829087",
+    fontSize: "0.7rem",
+    lineHeight: 1.5,
+  },
+
+  explorerBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    padding: "0.4rem 0.6rem",
+    borderRadius: "7px",
+    backgroundColor: "#f0f7f2",
+    border: "1px solid #d7e7db",
+    color: "#386448",
+    fontSize: "0.61rem",
+    fontWeight: "750",
+  },
+
+  explorerControls: {
+    display: "flex",
+    gap: "1rem",
+    alignItems: "flex-end",
+  },
+
+  searchContainer: {
+    flex: "1 1 400px",
+    position: "relative",
+  },
+
+  yearContainer: {
+    width: "175px",
+    flexShrink: 0,
+  },
+
+  controlLabel: {
+    display: "block",
+    color: "#596960",
+    fontSize: "0.67rem",
+    fontWeight: "750",
+    marginBottom: "0.35rem",
+  },
+
+  searchWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  searchIcon: {
+    position: "absolute",
+    left: "0.8rem",
+    color: "#87948c",
+    pointerEvents: "none",
+  },
+
+  searchChevron: {
+    position: "absolute",
+    right: "0.8rem",
+    color: "#87948c",
+    pointerEvents: "none",
+  },
+
+  searchInput: {
+    width: "100%",
+    height: "43px",
+    boxSizing: "border-box",
+    border: "1px solid #d4ded8",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#35463c",
+    padding:
+      "0.65rem 2.5rem 0.65rem 2.45rem",
+    fontSize: "0.73rem",
+    outline: "none",
+  },
+
+  yearWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  yearIcon: {
+    position: "absolute",
+    left: "0.75rem",
+    color: "#74847a",
+    pointerEvents: "none",
+  },
+
+  yearSelect: {
+    width: "100%",
+    height: "43px",
+    boxSizing: "border-box",
+    border: "1px solid #d4ded8",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#35463c",
+    padding:
+      "0.65rem 0.7rem 0.65rem 2.35rem",
+    fontSize: "0.73rem",
+    outline: "none",
+    cursor: "pointer",
+  },
+
+  /* DROPDOWN */
+
+  dropdown: {
+    position: "absolute",
+    top: "calc(100% + 6px)",
+    left: 0,
+    right: 0,
+    backgroundColor: "#ffffff",
+    border: "1px solid #dce5df",
+    borderRadius: "11px",
+    boxShadow:
+      "0 16px 35px rgba(28,57,39,0.15)",
+    zIndex: 100,
+    overflow: "hidden",
+    maxHeight: "310px",
+    overflowY: "auto",
+  },
+
+  dropdownHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "0.65rem 0.8rem",
+    backgroundColor: "#f7faf8",
+    borderBottom: "1px solid #e4ebe6",
+    color: "#75827a",
+    fontSize: "0.59rem",
+    fontWeight: "800",
+    letterSpacing: "0.07em",
+  },
+
+  dropdownMessage: {
+    padding: "1rem",
+    textAlign: "center",
+    color: "#829087",
+    fontSize: "0.7rem",
+  },
+
+  dropdownItem: {
+    width: "100%",
+    border: "none",
+    borderBottom:
+      "1px solid #edf1ee",
+    padding: "0.7rem 0.8rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.65rem",
+    textAlign: "left",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+
   itemAvatar: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    backgroundColor: "var(--bg-surface-elevated)",
+    width: "35px",
+    height: "35px",
+    borderRadius: "10px",
+    backgroundColor: "#eef3ef",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    flexShrink: 0,
   },
+
   avatarImg: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
   },
+
   itemMeta: {
     display: "flex",
     flexDirection: "column",
+    minWidth: 0,
+    flex: 1,
   },
+
   itemName: {
-    fontSize: "0.9rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
+    color: "#35463c",
+    fontSize: "0.72rem",
+    fontWeight: "750",
   },
+
   itemSubText: {
-    fontSize: "0.75rem",
-    color: "var(--text-secondary)",
+    marginTop: "0.15rem",
+    color: "#8a958f",
+    fontSize: "0.61rem",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
-  summaryCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.25rem 1.5rem",
+
+  itemArrow: {
+    color: "#9aa59f",
+    transform: "rotate(-90deg)",
+    flexShrink: 0,
+  },
+
+  smallSpinner: {
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    border:
+      "2px solid #d6e3d9",
+    borderTopColor: "#28613d",
+    display: "inline-block",
+    verticalAlign: "middle",
+    marginRight: "0.4rem",
+    animation:
+      "leaveBalanceSpin 0.7s linear infinite",
+  },
+
+  /* EMPLOYEE CARD */
+
+  employeeCard: {
+    backgroundColor: "#ffffff",
+    border: "1px solid #dce5df",
+    borderRadius: "16px",
+    padding: "1rem 1.2rem",
     marginBottom: "1.5rem",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
     gap: "1rem",
+    flexWrap: "wrap",
+    boxShadow:
+      "0 5px 20px rgba(31,59,41,0.035)",
   },
-  summaryLeft: {
+
+  employeeIdentity: {
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
+    gap: "0.8rem",
+    minWidth: 0,
   },
-  summaryAvatar: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "50%",
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
+
+  employeeAvatar: {
+    width: "50px",
+    height: "50px",
+    borderRadius: "13px",
+    backgroundColor: "#28613d",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "700",
-    fontSize: "1.1rem",
     overflow: "hidden",
+    flexShrink: 0,
   },
-  summaryInitials: {
+
+  employeeInitials: {
+    fontSize: "0.95rem",
+    fontWeight: "800",
     textTransform: "uppercase",
   },
-  summaryName: {
-    fontSize: "1.25rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
+
+  employeeLabel: {
+    display: "block",
+    color: "#89958e",
+    fontSize: "0.55rem",
+    fontWeight: "800",
+    letterSpacing: "0.11em",
   },
-  summaryBadges: {
+
+  employeeName: {
+    margin: "0.12rem 0 0",
+    color: "#304238",
+    fontSize: "1.02rem",
+    fontWeight: "800",
+  },
+
+  employeeDetails: {
     display: "flex",
     alignItems: "center",
-    gap: "0.75rem",
+    gap: "0.55rem",
     marginTop: "0.25rem",
+    flexWrap: "wrap",
   },
+
   codeBadge: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--primary-color)",
-    border: "1px solid var(--primary-border)",
-    padding: "0.15rem 0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.75rem",
-    fontWeight: "700",
+    padding: "0.22rem 0.45rem",
+    borderRadius: "6px",
+    backgroundColor: "#edf6ef",
+    border: "1px solid #d6e8da",
+    color: "#28613d",
+    fontSize: "0.59rem",
+    fontWeight: "800",
   },
+
   emailText: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
+    color: "#7d8a82",
+    fontSize: "0.63rem",
   },
-  summaryRight: {
+
+  employeeActions: {
     display: "flex",
     alignItems: "center",
+    gap: "0.55rem",
   },
-  refreshBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
+
+  selectedYearBox: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "57px",
+    padding: "0.4rem 0.55rem",
+    borderRadius: "8px",
+    backgroundColor: "#f5f8f5",
+    border: "1px solid #e1e8e3",
+  },
+
+  refreshButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    height: "35px",
+    padding: "0 0.7rem",
+    borderRadius: "8px",
+    border: "1px solid #d5e0d8",
+    backgroundColor: "#ffffff",
+    color: "#496052",
+    fontSize: "0.64rem",
+    fontWeight: "750",
     cursor: "pointer",
   },
-  promptState: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px dashed var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "3.5rem 1.5rem",
+
+  /* LOADING */
+
+  loadingArea: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.9rem",
+  },
+
+  loadingHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  loadingBarLarge: {
+    width: "210px",
+    height: "18px",
+    borderRadius: "6px",
+    backgroundColor: "#e9efeb",
+  },
+
+  loadingBarSmall: {
+    width: "75px",
+    height: "14px",
+    borderRadius: "5px",
+    backgroundColor: "#edf2ee",
+  },
+
+  loadingGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(3, 1fr)",
+    gap: "0.9rem",
+  },
+
+  loadingCard: {
+    height: "105px",
+    borderRadius: "13px",
+    backgroundColor: "#edf2ee",
+  },
+
+  loadingTable: {
+    height: "260px",
+    borderRadius: "14px",
+    backgroundColor: "#edf2ee",
+  },
+
+  /* INITIAL / EMPTY */
+
+  initialState: {
+    minHeight: "290px",
+    border: "1px dashed #cddbd1",
+    borderRadius: "16px",
+    backgroundColor: "#fbfcfb",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
     textAlign: "center",
+    padding: "2rem",
   },
-  promptTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: "0 0 0.375rem 0",
+
+  initialIcon: {
+    width: "52px",
+    height: "52px",
+    borderRadius: "15px",
+    backgroundColor: "#eaf4ed",
+    color: "#28613d",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "0.8rem",
   },
-  promptSubtitle: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    margin: 0,
+
+  initialEyebrow: {
+    color: "#819087",
+    fontSize: "0.57rem",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
   },
-  emptyState: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "3.5rem 1.5rem",
-    textAlign: "center",
-  },
-  emptyTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: "0 0 0.375rem 0",
-  },
-  emptySubtitle: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    margin: 0,
-  },
-  tableWrapper: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    overflowX: "auto",
-    maxWidth: "100%",
-  },
-  tableTitleHeader: {
-    padding: "1rem 1.25rem",
-    borderBottom: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface-elevated)",
-  },
-  tableTitle: {
+
+  initialTitle: {
+    margin: "0.3rem 0 0",
+    color: "#35463c",
     fontSize: "1rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: 0,
+    fontWeight: "800",
   },
+
+  initialText: {
+    maxWidth: "410px",
+    margin: "0.4rem 0 0",
+    color: "#89958e",
+    fontSize: "0.7rem",
+    lineHeight: 1.55,
+  },
+
+  emptyState: {
+    minHeight: "280px",
+    border: "1px solid #dfe7e2",
+    borderRadius: "16px",
+    backgroundColor: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    padding: "2rem",
+  },
+
+  emptyIcon: {
+    width: "52px",
+    height: "52px",
+    borderRadius: "15px",
+    backgroundColor: "#f3f5f3",
+    color: "#718078",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "0.8rem",
+  },
+
+  emptyEyebrow: {
+    color: "#89958e",
+    fontSize: "0.57rem",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+  },
+
+  emptyTitle: {
+    margin: "0.3rem 0 0",
+    color: "#35463c",
+    fontSize: "1rem",
+    fontWeight: "800",
+  },
+
+  emptyText: {
+    maxWidth: "480px",
+    margin: "0.4rem 0 0",
+    color: "#89958e",
+    fontSize: "0.7rem",
+    lineHeight: 1.55,
+  },
+
+  /* SUMMARY */
+
+  summarySection: {
+    marginBottom: "1.5rem",
+  },
+
+  sectionHeader: {
+    marginBottom: "0.75rem",
+  },
+
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(4, minmax(0, 1fr))",
+    gap: "0.8rem",
+  },
+
+  summaryMetric: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.7rem",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dfe7e2",
+    borderRadius: "13px",
+    padding: "0.9rem",
+  },
+
+  metricIcon: {
+    width: "39px",
+    height: "39px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
+  metricLabel: {
+    display: "block",
+    color: "#8a968f",
+    fontSize: "0.53rem",
+    fontWeight: "800",
+    letterSpacing: "0.08em",
+  },
+
+  metricValue: {
+    display: "block",
+    marginTop: "0.12rem",
+    color: "#35463c",
+    fontSize: "1.2rem",
+    lineHeight: 1,
+    fontWeight: "800",
+  },
+
+  metricHint: {
+    display: "block",
+    marginTop: "0.22rem",
+    color: "#98a19c",
+    fontSize: "0.55rem",
+  },
+
+  /* TABLE */
+
+  tableCard: {
+    backgroundColor: "#ffffff",
+    border: "1px solid #dfe7e2",
+    borderRadius: "16px",
+    overflow: "hidden",
+    boxShadow:
+      "0 5px 20px rgba(31,59,41,0.035)",
+  },
+
+  tableHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "1rem",
+    padding: "1rem 1.1rem",
+    borderBottom: "1px solid #e4eae6",
+    backgroundColor: "#f8faf8",
+  },
+
+  tableTitle: {
+    margin: 0,
+    color: "#34463b",
+    fontSize: "0.94rem",
+    fontWeight: "800",
+  },
+
+  tableYearBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    padding: "0.35rem 0.55rem",
+    borderRadius: "7px",
+    backgroundColor: "#eaf4ed",
+    color: "#28613d",
+    fontSize: "0.6rem",
+    fontWeight: "800",
+  },
+
   table: {
     width: "100%",
     borderCollapse: "collapse",
     textAlign: "left",
-    fontSize: "0.9rem",
+    fontSize: "0.72rem",
   },
+
   th: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    padding: "0.875rem 1rem",
-    fontWeight: "600",
-    fontSize: "0.8rem",
+    padding: "0.75rem 0.9rem",
+    backgroundColor: "#fbfcfb",
+    borderBottom: "1px solid #e2e9e4",
+    color: "#7b887f",
+    fontSize: "0.56rem",
+    fontWeight: "800",
+    letterSpacing: "0.07em",
     textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    borderBottom: "1px solid var(--border-color)",
+    whiteSpace: "nowrap",
   },
+
   tr: {
-    borderBottom: "1px solid var(--border-color)",
+    borderBottom: "1px solid #edf1ee",
   },
+
   td: {
-    padding: "0.875rem 1rem",
-    color: "var(--text-primary)",
+    padding: "0.85rem 0.9rem",
+    color: "#48574e",
+    verticalAlign: "middle",
   },
-  editBtn: {
-    backgroundColor: "transparent",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.35rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8rem",
-    fontWeight: "600",
+
+  tdMuted: {
+    padding: "0.85rem 0.9rem",
+    color: "#859089",
+    verticalAlign: "middle",
+  },
+
+  tdNumber: {
+    padding: "0.85rem 0.9rem",
+    color: "#526158",
+    fontWeight: "700",
+    verticalAlign: "middle",
+  },
+
+  leaveTypeCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.55rem",
+  },
+
+  leaveTypeIcon: {
+    width: "33px",
+    height: "33px",
+    borderRadius: "9px",
+    backgroundColor: "#eaf4ed",
+    color: "#28613d",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
+  leaveTypeName: {
+    color: "#35463c",
+    fontSize: "0.71rem",
+    fontWeight: "750",
+  },
+
+  remainingBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "42px",
+    padding: "0.32rem 0.48rem",
+    borderRadius: "7px",
+    fontSize: "0.61rem",
+    fontWeight: "800",
+  },
+
+  editButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    border: "1px solid #cadbcf",
+    backgroundColor: "#f4f9f5",
+    color: "#28613d",
+    padding: "0.42rem 0.6rem",
+    borderRadius: "7px",
+    fontSize: "0.61rem",
+    fontWeight: "750",
     cursor: "pointer",
   },
-  mobileCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1rem 1.25rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.875rem",
+
+  /* MOBILE */
+
+  mobileSection: {
+    display: "none",
   },
+
+  mobileSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "0.75rem",
+  },
+
+  mobileCard: {
+    backgroundColor: "#ffffff",
+    border: "1px solid #dfe7e2",
+    borderRadius: "14px",
+    padding: "0.95rem",
+  },
+
   mobileCardHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.75rem",
+    gap: "0.7rem",
   },
+
+  mobileLeaveIdentity: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.55rem",
+  },
+
   mobileCardTitle: {
-    fontSize: "1rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
     margin: 0,
+    color: "#35463c",
+    fontSize: "0.76rem",
+    fontWeight: "800",
   },
-  mobileCardSub: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
-    fontWeight: "600",
+
+  mobileCardYear: {
+    display: "block",
+    marginTop: "0.15rem",
+    color: "#8a958f",
+    fontSize: "0.57rem",
   },
-  mobileCardGrid: {
+
+  mobileMetrics: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "0.75rem",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "0.5rem",
+    marginTop: "0.8rem",
   },
-  mobileMetricBox: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "0.625rem 0.75rem",
+
+  mobileMetric: {
     display: "flex",
     flexDirection: "column",
     gap: "0.15rem",
+    backgroundColor: "#f7f9f7",
+    border: "1px solid #e4eae6",
+    borderRadius: "8px",
+    padding: "0.55rem",
   },
-  mobileMetricLabel: {
-    fontSize: "0.7rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    color: "var(--text-muted)",
-  },
-  mobileMetricValue: {
-    fontSize: "0.95rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-  },
-  skeletonContainer: {
+
+  mobileMetric: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "0.15rem",
+    backgroundColor: "#f7f9f7",
+    border: "1px solid #e4eae6",
+    borderRadius: "8px",
+    padding: "0.55rem",
   },
-  skeletonRow: {
-    height: "54px",
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    animation: "pulse 1.5s infinite ease-in-out",
+
+  mobileEditButton: {
+    width: "100%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.35rem",
+    marginTop: "0.7rem",
+    padding: "0.55rem",
+    borderRadius: "8px",
+    border: "1px solid #cadbcf",
+    backgroundColor: "#f4f9f5",
+    color: "#28613d",
+    fontSize: "0.65rem",
+    fontWeight: "750",
+    cursor: "pointer",
   },
+
+  /* MODAL */
+
   modalOverlay: {
     position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
-    backdropFilter: "blur(4px)",
+    inset: 0,
+    backgroundColor:
+      "rgba(19, 35, 25, 0.68)",
+    backdropFilter: "blur(5px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1100,
     padding: "1rem",
+    zIndex: 1200,
   },
+
   modal: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-xl)",
-    width: "min(92vw, 480px)",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dce5df",
+    borderRadius: "18px",
     maxHeight: "calc(100vh - 32px)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    boxShadow: "var(--shadow-overlay)",
+    boxShadow:
+      "0 28px 75px rgba(20,45,29,0.25)",
   },
+
   modalHeader: {
-    padding: "1.25rem 1.5rem",
-    borderBottom: "1px solid var(--border-color)",
+    padding: "1rem 1.2rem",
+    backgroundColor: "#f7faf8",
+    borderBottom: "1px solid #e1e8e3",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "var(--bg-surface-elevated)",
+    justifyContent: "space-between",
+    gap: "1rem",
     flexShrink: 0,
   },
-  modalTitle: {
-    fontSize: "1.05rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
+
+  modalHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.7rem",
+    minWidth: 0,
   },
-  closeBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
-    cursor: "pointer",
-    padding: "0.375rem",
-    borderRadius: "var(--radius-md)",
-    display: "inline-flex",
+
+  modalIcon: {
+    width: "41px",
+    height: "41px",
+    borderRadius: "11px",
+    backgroundColor: "#e7f3ea",
+    color: "#28613d",
+    display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.15s ease",
+    flexShrink: 0,
   },
+
+  modalEyebrow: {
+    display: "block",
+    color: "#87948c",
+    fontSize: "0.54rem",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+    marginBottom: "0.18rem",
+  },
+
+  modalTitle: {
+    margin: 0,
+    color: "#33453a",
+    fontSize: "1rem",
+    fontWeight: "800",
+  },
+
+  closeButton: {
+    width: "33px",
+    height: "33px",
+    border: "none",
+    borderRadius: "8px",
+    backgroundColor: "transparent",
+    color: "#75827a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+
   formContent: {
     display: "flex",
     flexDirection: "column",
@@ -1014,113 +3225,289 @@ const styles = {
     minHeight: 0,
     overflow: "hidden",
   },
+
   modalBody: {
-    padding: "1.5rem",
-    overflowY: "auto",
     flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    padding: "1.1rem",
     display: "flex",
     flexDirection: "column",
-    gap: "1.125rem",
+    gap: "0.8rem",
   },
-  modalEmployeeMeta: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    margin: 0,
-    lineHeight: "1.4",
+
+  modalContext: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.65rem",
+    padding: "0.75rem",
+    borderRadius: "10px",
+    backgroundColor: "#f1f7f3",
+    border: "1px solid #dbe9de",
   },
+
+  modalContextIcon: {
+    width: "35px",
+    height: "35px",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#28613d",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
+  modalContextLabel: {
+    display: "block",
+    color: "#849188",
+    fontSize: "0.51rem",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+  },
+
+  modalContextName: {
+    display: "block",
+    color: "#35463c",
+    fontSize: "0.76rem",
+    marginTop: "0.12rem",
+  },
+
+  modalContextCode: {
+    display: "block",
+    color: "#7d8b82",
+    fontSize: "0.58rem",
+    marginTop: "0.12rem",
+  },
+
+  formSection: {
+    border: "1px solid #dfe7e2",
+    borderRadius: "12px",
+    padding: "0.9rem",
+  },
+
+  formSectionHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "0.6rem",
+    marginBottom: "0.8rem",
+  },
+
+  formSectionNumber: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "8px",
+    backgroundColor: "#e8f4ec",
+    color: "#28613d",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "0.58rem",
+    fontWeight: "800",
+    flexShrink: 0,
+  },
+
+  formSectionTitle: {
+    display: "block",
+    color: "#35463c",
+    fontSize: "0.72rem",
+    fontWeight: "800",
+  },
+
+  formSectionText: {
+    display: "block",
+    color: "#8a958f",
+    fontSize: "0.6rem",
+    marginTop: "0.15rem",
+  },
+
   formGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.375rem",
+    gap: "0.35rem",
   },
+
   label: {
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    color: "var(--text-secondary)",
-    display: "block",
+    color: "#56645c",
+    fontSize: "0.66rem",
+    fontWeight: "750",
   },
-  readOnlyBadge: {
-    fontSize: "0.7rem",
-    fontWeight: "600",
-    color: "var(--text-muted)",
-    backgroundColor: "var(--bg-surface-elevated)",
-    padding: "0.1rem 0.4rem",
-    borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--border-color)",
+
+  required: {
+    color: "#a33b3b",
+    marginLeft: "0.15rem",
   },
+
   modalInput: {
     width: "100%",
-    height: "42px",
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.625rem 0.875rem",
-    fontSize: "0.9rem",
-    outline: "none",
+    height: "41px",
     boxSizing: "border-box",
-  },
-  modalInputReadOnly: {
-    width: "100%",
-    height: "42px",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-muted)",
-    padding: "0.625rem 0.875rem",
-    fontSize: "0.9rem",
+    border: "1px solid #d2ddd6",
+    borderRadius: "8px",
+    backgroundColor: "#ffffff",
+    color: "#35463c",
+    padding: "0.6rem 0.7rem",
+    fontSize: "0.72rem",
     outline: "none",
-    cursor: "not-allowed",
-    boxSizing: "border-box",
-    fontWeight: "600",
   },
-  calculatedCard: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "1rem 1.25rem",
+
+  helperText: {
+    color: "#929d96",
+    fontSize: "0.58rem",
+  },
+
+  systemGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "0.7rem",
+  },
+
+  readOnlyCard: {
+    backgroundColor: "#f7f9f7",
+    border: "1px solid #e1e8e3",
+    borderRadius: "9px",
+    padding: "0.7rem",
+  },
+
+  readOnlyTop: {
     display: "flex",
-    flexDirection: "column",
-    gap: "0.25rem",
-    marginTop: "0.25rem",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.4rem",
   },
-  calculatedLabel: {
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    color: "var(--text-muted)",
-  },
-  calculatedValue: {
-    fontSize: "1.35rem",
+
+  readOnlyLabel: {
+    color: "#87938c",
+    fontSize: "0.55rem",
     fontWeight: "800",
-    color: "var(--primary-color)",
+    letterSpacing: "0.07em",
   },
-  modalFooter: {
-    padding: "1rem 1.5rem",
-    borderTop: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface-elevated)",
+
+  readOnlyBadge: {
+    color: "#77847c",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dce4df",
+    borderRadius: "5px",
+    padding: "0.15rem 0.3rem",
+    fontSize: "0.48rem",
+    fontWeight: "750",
+  },
+
+  readOnlyValue: {
+    display: "block",
+    marginTop: "0.35rem",
+    color: "#526158",
+    fontSize: "1.15rem",
+    fontWeight: "800",
+  },
+
+  calculationCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.7rem",
+    padding: "0.8rem",
+    borderRadius: "10px",
+    backgroundColor: "#edf6ef",
+    border: "1px solid #d5e7d9",
+  },
+
+  calculationIcon: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#28613d",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     flexShrink: 0,
   },
-  secondaryBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
+
+  calculationContent: {
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  calculationLabel: {
+    color: "#6e8074",
+    fontSize: "0.53rem",
+    fontWeight: "800",
+    letterSpacing: "0.08em",
+  },
+
+  calculationValue: {
+    marginTop: "0.15rem",
+    fontSize: "1.2rem",
+    lineHeight: 1,
+    fontWeight: "800",
+  },
+
+  calculationFormula: {
+    marginTop: "0.2rem",
+    color: "#849188",
+    fontSize: "0.54rem",
+  },
+
+  modalFooter: {
+    padding: "0.85rem 1.1rem",
+    backgroundColor: "#f8faf8",
+    borderTop: "1px solid #e1e8e3",
+    flexShrink: 0,
+  },
+
+  footerNote: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    color: "#7f8d84",
+    fontSize: "0.58rem",
+  },
+
+  footerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "0.5rem",
+    marginTop: "0.7rem",
+  },
+
+  secondaryButton: {
+    border: "1px solid #d3ddd7",
+    backgroundColor: "#ffffff",
+    color: "#617068",
+    padding: "0.58rem 0.85rem",
+    borderRadius: "8px",
+    fontSize: "0.65rem",
+    fontWeight: "750",
     cursor: "pointer",
   },
-  primaryBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
+
+  primaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.35rem",
     border: "none",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
+    backgroundColor: "#28613d",
+    color: "#ffffff",
+    minWidth: "125px",
+    padding: "0.58rem 0.85rem",
+    borderRadius: "8px",
+    fontSize: "0.65rem",
+    fontWeight: "750",
     cursor: "pointer",
+  },
+
+  spinner: {
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    border:
+      "2px solid rgba(255,255,255,0.35)",
+    borderTopColor: "#ffffff",
+    display: "inline-block",
+    animation:
+      "leaveBalanceSpin 0.7s linear infinite",
   },
 };
 

@@ -2,10 +2,9 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
 
-function ProtectedRoute({ allowPasswordChange = false }) {
+function ProtectedRoute() {
   const {
     isAuthenticated,
-    user,
     loading,
   } = useAuth();
 
@@ -39,26 +38,6 @@ function ProtectedRoute({ allowPasswordChange = false }) {
         to="/login"
         replace
         state={{ from: location }}
-      />
-    );
-  }
-
-  /*
-   * If the user's password was reset by HR,
-   * the user must change the temporary password
-   * before accessing normal protected pages.
-   *
-   * allowPasswordChange is true only for the
-   * /change-password route.
-   */
-  if (
-    user?.must_change_password &&
-    !allowPasswordChange
-  ) {
-    return (
-      <Navigate
-        to="/change-password"
-        replace
       />
     );
   }

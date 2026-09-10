@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.authentication_service.dependencies import (
     get_current_hr,
-    get_current_user_with_password_check,
+    get_current_user,
 )
-from app.authentication_service.models import User
+from app.authentication_service.models import User, UserRole
 from app.core.database import get_db
 from app.employee_service import service
 from app.employee_service.models import EmploymentStatus
@@ -17,6 +17,7 @@ from app.employee_service.schemas import (
     EmployeeResponse,
     EmployeeSelfUpdate,
     EmployeeUpdate,
+    HROwnProfileUpdate,
     format_employee_response,
 )
 
@@ -103,12 +104,19 @@ def list_employees_endpoint(
 )
 def get_my_profile_endpoint(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
-    employee = service.get_employee_by_user_id(
-        db=db,
-        user_id=current_user.id,
-    )
+    if current_user.role == UserRole.HR:
+        employee = service.get_or_create_hr_profile(
+            db=db,
+            user=current_user,
+        )
+    else:
+        employee = service.get_employee_by_user_id(
+            db=db,
+            user_id=current_user.id,
+        )
+
     return format_employee_response(employee)
 
 
@@ -125,7 +133,7 @@ def get_my_profile_endpoint(
 def update_my_profile_endpoint(
     data: EmployeeSelfUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     employee = service.update_self_profile(
         db=db,
@@ -134,6 +142,28 @@ def update_my_profile_endpoint(
     )
     return format_employee_response(employee)
 
+
+# ============================================================
+# Update Own HR Profile
+# ============================================================
+
+@router.put(
+    "/me/hr-profile",
+    response_model=EmployeeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update Own HR Profile",
+)
+def update_hr_profile_endpoint(
+    data: HROwnProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    employee = service.update_hr_profile(
+        db=db,
+        user=current_user,
+        data=data,
+    )
+    return format_employee_response(employee)
 
 # ============================================================
 # Get Employee Details by ID (HR Only)
@@ -268,10 +298,18 @@ from app.cloudinary_service import service as cloudinary_service
 async def upload_my_profile_photo_endpoint(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
-    employee = service.get_employee_by_user_id(db=db, user_id=current_user.id)
-
+    if current_user.role == UserRole.HR:
+        employee = service.get_or_create_hr_profile(
+            db=db,
+            user=current_user,
+        )
+    else:
+        employee = service.get_employee_by_user_id(
+            db=db,
+            user_id=current_user.id,
+        )
     file_bytes = await file.read()
     cloudinary_service.validate_image_file(file=file, file_bytes=file_bytes)
 
@@ -302,9 +340,18 @@ async def upload_my_profile_photo_endpoint(
 )
 def remove_my_profile_photo_endpoint(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
-    employee = service.get_employee_by_user_id(db=db, user_id=current_user.id)
+    if current_user.role == UserRole.HR:
+        employee = service.get_or_create_hr_profile(
+            db=db,
+            user=current_user,
+        )
+    else:
+        employee = service.get_employee_by_user_id(
+            db=db,
+            user_id=current_user.id,
+        )
 
     if employee.profile_photo_public_id:
         cloudinary_service.delete_image(employee.profile_photo_public_id)

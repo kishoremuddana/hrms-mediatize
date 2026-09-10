@@ -1,166 +1,299 @@
 import React from "react";
 
+/* =========================================================
+   PROJECT STATUS
+========================================================= */
+
 export function ProjectStatusBadge({ status }) {
-  const getStyle = () => {
+  const getStatusConfig = () => {
     switch (status) {
       case "PLANNED":
         return {
-          bg: "var(--bg-surface-elevated)",
-          color: "var(--text-secondary)",
-          border: "var(--border-color)",
           label: "PLANNED",
+          bg: "#f1f5f3",
+          color: "#52645a",
+          border: "#d8e1dc",
+          dot: "#7b8d83",
         };
+
       case "IN_PROGRESS":
         return {
-          bg: "var(--info-bg, rgba(59, 130, 246, 0.12))",
-          color: "var(--info-color, #3b82f6)",
-          border: "rgba(59, 130, 246, 0.3)",
           label: "IN PROGRESS",
+          bg: "#e8f2ec",
+          color: "#2f6b4f",
+          border: "#c8ded1",
+          dot: "#2f6b4f",
         };
+
       case "ON_HOLD":
         return {
-          bg: "var(--warning-bg)",
-          color: "var(--warning-color)",
-          border: "var(--warning-border)",
           label: "ON HOLD",
+          bg: "#fff7e6",
+          color: "#9a6700",
+          border: "#f0d99b",
+          dot: "#c58a00",
         };
+
       case "COMPLETED":
         return {
-          bg: "var(--success-bg)",
-          color: "var(--success-color)",
-          border: "var(--success-border)",
           label: "COMPLETED",
+          bg: "#e8f5ed",
+          color: "#277447",
+          border: "#c6e2d1",
+          dot: "#3b8b5c",
         };
+
       case "CANCELLED":
         return {
-          bg: "var(--danger-bg)",
-          color: "var(--danger-color)",
-          border: "var(--danger-border)",
           label: "CANCELLED",
+          bg: "#fdf0f0",
+          color: "#a33a3a",
+          border: "#eccaca",
+          dot: "#c45454",
         };
+
       default:
         return {
-          bg: "var(--bg-surface-elevated)",
-          color: "var(--text-primary)",
-          border: "var(--border-color)",
-          label: status,
+          label: status || "UNKNOWN",
+          bg: "#f1f5f3",
+          color: "#52645a",
+          border: "#d8e1dc",
+          dot: "#7b8d83",
         };
     }
   };
 
-  const style = getStyle();
+  const config = getStatusConfig();
 
   return (
     <span
       style={{
-        backgroundColor: style.bg,
-        color: style.color,
-        border: `1px solid ${style.border}`,
-        padding: "0.25rem 0.625rem",
-        borderRadius: "9999px",
-        fontSize: "0.75rem",
-        fontWeight: "700",
-        whiteSpace: "nowrap",
-        letterSpacing: "0.03em",
         display: "inline-flex",
         alignItems: "center",
+        gap: "0.4rem",
+        padding: "0.35rem 0.7rem",
+        borderRadius: "9999px",
+        backgroundColor: config.bg,
+        color: config.color,
+        border: `1px solid ${config.border}`,
+        fontSize: "0.7rem",
+        fontWeight: "700",
+        letterSpacing: "0.04em",
+        whiteSpace: "nowrap",
       }}
     >
-      {style.label}
+      <span
+        style={{
+          width: "6px",
+          height: "6px",
+          borderRadius: "50%",
+          backgroundColor: config.dot,
+          flexShrink: 0,
+        }}
+      />
+
+      {config.label}
     </span>
   );
 }
 
+
+/* =========================================================
+   PROJECT PRIORITY
+========================================================= */
+
 export function ProjectPriorityBadge({ priority }) {
-  const getStyle = () => {
+  const getPriorityConfig = () => {
     switch (priority) {
       case "LOW":
-        return { color: "var(--text-secondary)", bg: "var(--bg-surface-elevated)" };
+        return {
+          bg: "#f1f5f3",
+          color: "#607169",
+          border: "#d8e1dc",
+        };
+
       case "MEDIUM":
-        return { color: "var(--info-color, #3b82f6)", bg: "rgba(59, 130, 246, 0.1)" };
+        return {
+          bg: "#edf4ef",
+          color: "#3c7056",
+          border: "#d1e2d7",
+        };
+
       case "HIGH":
-        return { color: "var(--warning-color)", bg: "var(--warning-bg)" };
+        return {
+          bg: "#fff7e6",
+          color: "#9a6700",
+          border: "#f0d99b",
+        };
+
       case "CRITICAL":
-        return { color: "var(--danger-color)", bg: "var(--danger-bg)" };
+        return {
+          bg: "#fdf0f0",
+          color: "#a33a3a",
+          border: "#eccaca",
+        };
+
       default:
-        return { color: "var(--text-primary)", bg: "var(--bg-surface-elevated)" };
+        return {
+          bg: "#f1f5f3",
+          color: "#52645a",
+          border: "#d8e1dc",
+        };
     }
   };
 
-  const style = getStyle();
+  const config = getPriorityConfig();
 
   return (
     <span
       style={{
-        color: style.color,
-        backgroundColor: style.bg,
-        padding: "0.2rem 0.5rem",
-        borderRadius: "var(--radius-sm)",
-        fontSize: "0.75rem",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0.3rem 0.65rem",
+        borderRadius: "9999px",
+        backgroundColor: config.bg,
+        color: config.color,
+        border: `1px solid ${config.border}`,
+        fontSize: "0.68rem",
         fontWeight: "700",
         textTransform: "uppercase",
-        letterSpacing: "0.04em",
+        letterSpacing: "0.05em",
+        whiteSpace: "nowrap",
       }}
     >
-      {priority}
+      {priority || "N/A"}
     </span>
   );
 }
 
-export function ProjectProgress({ percentage }) {
-  const safePercent = Math.min(Math.max(percentage || 0, 0), 100);
 
-  const getBarColor = () => {
-    if (safePercent >= 100) return "var(--success-color)";
-    if (safePercent >= 60) return "var(--primary-color)";
-    if (safePercent >= 30) return "var(--warning-color)";
-    return "var(--danger-color)";
+/* =========================================================
+   PROJECT PROGRESS
+========================================================= */
+
+export function ProjectProgress({ percentage }) {
+  const safePercent = Math.min(
+    Math.max(Number(percentage) || 0, 0),
+    100
+  );
+
+  const getProgressColor = () => {
+    if (safePercent >= 100) {
+      return "#2f6b4f";
+    }
+
+    if (safePercent >= 60) {
+      return "#4b8065";
+    }
+
+    if (safePercent >= 30) {
+      return "#b58a35";
+    }
+
+    return "#9b5c5c";
   };
 
+  const progressColor = getProgressColor();
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", width: "100%", minWidth: "100px" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.65rem",
+        width: "100%",
+        minWidth: "110px",
+      }}
+    >
+      {/* TRACK */}
+
       <div
         style={{
           flex: 1,
-          height: "8px",
-          backgroundColor: "var(--bg-surface-elevated)",
+          height: "7px",
+          backgroundColor: "#e8eeeb",
           borderRadius: "9999px",
           overflow: "hidden",
-          border: "1px solid var(--border-color)",
+          minWidth: "50px",
         }}
       >
+        {/* PROGRESS */}
+
         <div
           style={{
             height: "100%",
             width: `${safePercent}%`,
-            backgroundColor: getBarColor(),
+            backgroundColor: progressColor,
             borderRadius: "9999px",
             transition: "width 0.3s ease",
           }}
         />
       </div>
-      <span style={{ fontSize: "0.8125rem", fontWeight: "700", color: "var(--text-primary)", minWidth: "35px", textAlign: "right" }}>
+
+      {/* VALUE */}
+
+      <span
+        style={{
+          minWidth: "34px",
+          textAlign: "right",
+          fontSize: "0.75rem",
+          fontWeight: "700",
+          color: "#34483e",
+        }}
+      >
         {safePercent}%
       </span>
     </div>
   );
 }
 
+
+/* Keep compatibility with existing imports */
+
 export const ProgressBar = ProjectProgress;
+
+
+/* =========================================================
+   ROLE STATUS
+========================================================= */
 
 export function RoleStatusBadge({ isActive }) {
   return (
     <span
       style={{
-        backgroundColor: isActive ? "var(--success-bg, rgba(34, 197, 94, 0.12))" : "var(--danger-bg, rgba(239, 68, 68, 0.12))",
-        color: isActive ? "var(--success-color, #22c55e)" : "var(--danger-color, #ef4444)",
-        border: `1px solid ${isActive ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
-        padding: "0.2rem 0.6rem",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.4rem",
+        padding: "0.3rem 0.65rem",
         borderRadius: "9999px",
-        fontSize: "0.75rem",
+        backgroundColor: isActive
+          ? "#e8f5ed"
+          : "#fdf0f0",
+        color: isActive
+          ? "#277447"
+          : "#a33a3a",
+        border: `1px solid ${
+          isActive
+            ? "#c6e2d1"
+            : "#eccaca"
+        }`,
+        fontSize: "0.7rem",
         fontWeight: "700",
+        letterSpacing: "0.04em",
       }}
     >
+      <span
+        style={{
+          width: "6px",
+          height: "6px",
+          borderRadius: "50%",
+          backgroundColor: isActive
+            ? "#3b8b5c"
+            : "#c45454",
+        }}
+      />
+
       {isActive ? "ACTIVE" : "INACTIVE"}
     </span>
   );

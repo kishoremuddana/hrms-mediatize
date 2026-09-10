@@ -9,6 +9,23 @@ const authApi = axios.create({
   },
 });
 
+
+export const sendOTP = async (email) => {
+  const response = await api.post("/send-otp", {
+    email,
+  });
+
+  return response.data;
+};
+
+export const verifyOTP = async (email, otp) => {
+  const response = await api.post("/verify-otp", {
+    email,
+    otp,
+  });
+
+  return response.data;
+};
 /*
  * =========================================================
  * REQUEST INTERCEPTOR
@@ -63,14 +80,5 @@ authApi.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export const getPasswordResetRequests = () =>
-  authApi.get("/password-reset-requests");
-
-export const approvePasswordResetRequest = (requestId) =>
-  authApi.post(`/password-reset-requests/${requestId}/approve`);
-
-export const rejectPasswordResetRequest = (requestId) =>
-  authApi.post(`/password-reset-requests/${requestId}/reject`);
 
 export default authApi;

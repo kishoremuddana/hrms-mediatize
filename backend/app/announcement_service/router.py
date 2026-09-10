@@ -29,7 +29,7 @@ from app.announcement_service.service import (
 )
 from app.authentication_service.dependencies import (
     get_current_hr,
-    get_current_user_with_password_check,
+    get_current_user,
 )
 from app.authentication_service.models import User
 from app.core.database import get_db
@@ -121,7 +121,7 @@ def get_announcements_for_employee_endpoint(
     unread_only: bool = Query(False),
     search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieve authorized employee announcements feed.
@@ -147,7 +147,7 @@ def get_announcements_for_employee_endpoint(
 def get_announcement_by_id_endpoint(
     announcement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieve single announcement details. IDOR Protected.
@@ -229,7 +229,7 @@ def archive_announcement_endpoint(
 def mark_announcement_as_read_endpoint(
     announcement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Mark announcement as read. On demand. IDOR Protected.

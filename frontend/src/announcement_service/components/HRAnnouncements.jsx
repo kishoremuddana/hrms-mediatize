@@ -4,7 +4,6 @@ import {
   Plus,
   Folder,
   Search,
-  Filter,
   Eye,
   Edit,
   Send,
@@ -13,9 +12,15 @@ import {
   Calendar,
   AlertCircle,
   Clock,
-  Layers,
+  Building2,
+  FileText,
+  CheckCircle2,
+  ArchiveRestore,
+  ChevronRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "react-toastify";
+
 import {
   getHRAnnouncements,
   createAnnouncement,
@@ -23,6 +28,7 @@ import {
   publishAnnouncement,
   archiveAnnouncement,
 } from "../services/announcementApi";
+
 import Button from "../../shared/components/Button";
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
@@ -34,35 +40,71 @@ const HRAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("ALL"); // ALL, COMPANY, PROJECT, DRAFT, PUBLISHED, ARCHIVED
+
+  const [activeTab, setActiveTab] = useState("ALL");
   const [search, setSearch] = useState("");
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Modals state
-  const [isProjectSearchOpen, setIsProjectSearchOpen] = useState(false);
+  const [isProjectSearchOpen, setIsProjectSearchOpen] =
+    useState(false);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
-  const [viewingAnnouncement, setViewingAnnouncement] = useState(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState(null);
+
+  const [viewingAnnouncement, setViewingAnnouncement] =
+    useState(null);
+
   const [submitting, setSubmitting] = useState(false);
+
+  /* =========================================================
+     FETCH ANNOUNCEMENTS
+  ========================================================= */
 
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const params = { page, limit: 10, search: search.trim() || undefined };
-      if (activeTab === "COMPANY") params.scope = "COMPANY";
-      if (activeTab === "PROJECT") params.scope = "PROJECT";
-      if (activeTab === "DRAFT") params.status = "DRAFT";
-      if (activeTab === "PUBLISHED") params.status = "PUBLISHED";
-      if (activeTab === "ARCHIVED") params.status = "ARCHIVED";
+      const params = {
+        page,
+        limit: 10,
+        search: search.trim() || undefined,
+      };
+
+      if (activeTab === "COMPANY") {
+        params.scope = "COMPANY";
+      }
+
+      if (activeTab === "PROJECT") {
+        params.scope = "PROJECT";
+      }
+
+      if (activeTab === "DRAFT") {
+        params.status = "DRAFT";
+      }
+
+      if (activeTab === "PUBLISHED") {
+        params.status = "PUBLISHED";
+      }
+
+      if (activeTab === "ARCHIVED") {
+        params.status = "ARCHIVED";
+      }
 
       const res = await getHRAnnouncements(params);
+
       setAnnouncements(res.data.items || []);
       setTotalPages(res.data.total_pages || 1);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load announcements.");
+      setError(
+        err.response?.data?.detail ||
+          "Failed to load announcements."
+      );
+
       toast.error("Failed to load announcements");
     } finally {
       setLoading(false);
@@ -73,18 +115,30 @@ const HRAnnouncements = () => {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
+  /* =========================================================
+     CREATE COMPANY ANNOUNCEMENT
+  ========================================================= */
+
   const handleOpenCompanyCreate = () => {
     setSelectedProject(null);
     setEditingAnnouncement(null);
     setIsFormOpen(true);
   };
 
-  const handleProjectSelect = (proj) => {
+  /* =========================================================
+     CREATE PROJECT ANNOUNCEMENT
+  ========================================================= */
+
+  const handleProjectSelect = (project) => {
     setIsProjectSearchOpen(false);
-    setSelectedProject(proj);
+    setSelectedProject(project);
     setEditingAnnouncement(null);
     setIsFormOpen(true);
   };
+
+  /* =========================================================
+     EDIT
+  ========================================================= */
 
   const handleEdit = (announcement) => {
     setSelectedProject(null);
@@ -92,351 +146,949 @@ const HRAnnouncements = () => {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (payload, announcementId) => {
+  /* =========================================================
+     FORM SUBMIT
+  ========================================================= */
+
+  const handleFormSubmit = async (
+    payload,
+    announcementId
+  ) => {
     setSubmitting(true);
+
     try {
       if (announcementId) {
         await updateAnnouncement(announcementId, {
           title: payload.title,
           content: payload.content,
-          announcement_type: payload.announcement_type,
+          announcement_type:
+            payload.announcement_type,
           priority: payload.priority,
           expires_at: payload.expires_at,
         });
-        toast.success("Announcement updated successfully.");
+
+        toast.success(
+          "Announcement updated successfully."
+        );
       } else {
         await createAnnouncement(payload);
+
         toast.success(
           payload.publish_now
             ? "Announcement published successfully!"
             : "Announcement saved as draft."
         );
       }
+
       setIsFormOpen(false);
       setSelectedProject(null);
       setEditingAnnouncement(null);
+
       fetchAnnouncements();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to save announcement.");
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to save announcement."
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  /* =========================================================
+     PUBLISH
+  ========================================================= */
+
   const handlePublish = async (id) => {
     try {
       await publishAnnouncement(id);
-      toast.success("Announcement published successfully.");
+
+      toast.success(
+        "Announcement published successfully."
+      );
+
       fetchAnnouncements();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to publish announcement.");
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to publish announcement."
+      );
     }
   };
+
+  /* =========================================================
+     ARCHIVE
+  ========================================================= */
 
   const handleArchive = async (id) => {
     try {
       await archiveAnnouncement(id);
-      toast.success("Announcement archived.");
+
+      toast.success(
+        "Announcement archived."
+      );
+
       fetchAnnouncements();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to archive announcement.");
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to archive announcement."
+      );
     }
   };
 
+  /* =========================================================
+     STATISTICS
+  ========================================================= */
+
+  const allCount = announcements.length;
+
+  const draftCount = announcements.filter(
+    (item) => item.status === "DRAFT"
+  ).length;
+
+  const publishedCount = announcements.filter(
+    (item) => item.status === "PUBLISHED"
+  ).length;
+
+  const archivedCount = announcements.filter(
+    (item) => item.status === "ARCHIVED"
+  ).length;
+
+  const companyCount = announcements.filter(
+    (item) =>
+      item.announcement_scope === "COMPANY"
+  ).length;
+
+  const projectCount = announcements.filter(
+    (item) =>
+      item.announcement_scope === "PROJECT"
+  ).length;
+
+  /* =========================================================
+     STATUS CONFIG
+  ========================================================= */
+
+  const getStatusConfig = (status) => {
+    if (status === "PUBLISHED") {
+      return {
+        label: "Published",
+        background: "#ECFDF5",
+        color: "#047857",
+        border: "#A7F3D0",
+        icon: CheckCircle2,
+      };
+    }
+
+    if (status === "DRAFT") {
+      return {
+        label: "Draft",
+        background: "#FFF7ED",
+        color: "#C2410C",
+        border: "#FED7AA",
+        icon: FileText,
+      };
+    }
+
+    return {
+      label: "Archived",
+      background: "#F3F4F6",
+      color: "#6B7280",
+      border: "#D1D5DB",
+      icon: ArchiveRestore,
+    };
+  };
+
+  /* =========================================================
+     PRIORITY CONFIG
+  ========================================================= */
+
+  const getPriorityConfig = (priority) => {
+    if (priority === "URGENT") {
+      return {
+        color: "#B91C1C",
+        background: "#FEF2F2",
+        border: "#FECACA",
+        dot: "#DC2626",
+      };
+    }
+
+    if (priority === "IMPORTANT") {
+      return {
+        color: "#B45309",
+        background: "#FFFBEB",
+        border: "#FDE68A",
+        dot: "#D97706",
+      };
+    }
+
+    return {
+      color: "#64748B",
+      background: "#F8FAFC",
+      border: "#E2E8F0",
+      dot: "#94A3B8",
+    };
+  };
+
+  const tabs = [
+    {
+      id: "ALL",
+      label: "All",
+      icon: Megaphone,
+      count: allCount,
+    },
+    {
+      id: "COMPANY",
+      label: "Company",
+      icon: Building2,
+      count: companyCount,
+    },
+    {
+      id: "PROJECT",
+      label: "Projects",
+      icon: Folder,
+      count: projectCount,
+    },
+    {
+      id: "DRAFT",
+      label: "Drafts",
+      icon: FileText,
+      count: draftCount,
+    },
+    {
+      id: "PUBLISHED",
+      label: "Published",
+      icon: CheckCircle2,
+      count: publishedCount,
+    },
+    {
+      id: "ARCHIVED",
+      label: "Archived",
+      icon: Archive,
+      count: archivedCount,
+    },
+  ];
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
+
   return (
     <AppLayout title="Announcements Management">
-      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
-        {/* Back to Dashboard Button */}
+      <div
+        style={{
+          maxWidth: "1320px",
+          margin: "0 auto",
+          padding: "22px 24px 40px",
+        }}
+      >
         <BackToDashboard role="HR" />
 
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
-          <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-1 text-indigo-600 dark:text-indigo-400">
-              <Megaphone className="w-4 h-4 shrink-0" />
-              <span>COMMUNICATION CENTER</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-              Announcements Management
-            </h1>
-            <p className="text-sm mt-1 text-slate-600 dark:text-slate-300">
-              Create, publish, and target company-wide or project-specific announcements.
-            </p>
-          </div>
+        {/* =================================================
+            HERO
+        ================================================= */}
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0 pt-1">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setIsProjectSearchOpen(true)}
-              className="flex items-center gap-2 text-xs sm:text-sm font-medium"
-            >
-              <Folder className="w-4 h-4 text-amber-500 shrink-0" />
-              Project Announcement
-            </Button>
+        <section
+          style={{
+            marginTop: "20px",
+            padding: "26px",
+            borderRadius: "17px",
+            background:
+              "linear-gradient(135deg, #123524 0%, #1F5A3A 100%)",
+            position: "relative",
+            overflow: "hidden",
+            color: "#FFFFFF",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              width: "230px",
+              height: "230px",
+              borderRadius: "50%",
+              border:
+                "1px solid rgba(255,255,255,0.08)",
+              right: "-80px",
+              top: "-110px",
+            }}
+          />
 
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleOpenCompanyCreate}
-              className="flex items-center gap-2 text-xs sm:text-sm font-semibold"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              Company Announcement
-            </Button>
-          </div>
-        </div>
-
-      {/* Tabs & Search Bar Container */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 min-w-0">
-        {/* Navigation Tabs Scroller */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 lg:pb-0 min-w-0 flex-1 hrms-custom-scrollbar border-b lg:border-none border-slate-200 dark:border-slate-800">
-          {[
-            { id: "ALL", label: "All" },
-            { id: "COMPANY", label: "Company Scope" },
-            { id: "PROJECT", label: "Project Scope" },
-            { id: "DRAFT", label: "Drafts" },
-            { id: "PUBLISHED", label: "Published" },
-            { id: "ARCHIVED", label: "Archived" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setPage(1);
-              }}
-              className={`px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? "bg-indigo-600 text-white font-semibold shadow-xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search & Refresh */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search announcements..."
-              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400"
-            />
-          </div>
-
-          <button
-            onClick={fetchAnnouncements}
-            className="p-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shrink-0"
-            title="Refresh announcements"
-            aria-label="Refresh announcements"
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "20px",
+              flexWrap: "wrap",
+            }}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main List / Table */}
-      {loading ? (
-        <div className="space-y-4 py-8">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="h-32 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded-xl" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      ) : announcements.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8">
-          <Megaphone className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">No announcements found</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-            {search
-              ? "No matching announcements found. Try clearing your search query."
-              : "No announcements created under this tab filter yet."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {announcements.map((ann) => {
-            const isProject = ann.announcement_scope === "PROJECT";
-            const priorityBadgeClass =
-              ann.priority === "URGENT"
-                ? "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
-                : ann.priority === "IMPORTANT"
-                ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
-
-            const statusBadgeClass =
-              ann.status === "PUBLISHED"
-                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800"
-                : ann.status === "DRAFT"
-                ? "bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200 border-sky-200 dark:border-sky-800"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700";
-
-            return (
+            <div>
               <div
-                key={ann.id}
-                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all space-y-3"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  fontSize: "10px",
+                  fontWeight: 800,
+                  letterSpacing: "0.15em",
+                  opacity: 0.75,
+                }}
               >
-                {/* Card Top Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Scope Badge */}
-                    <span
-                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                        isProject
-                          ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-                          : "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
-                      }`}
-                    >
-                      {isProject ? `PROJECT • ${ann.project_code || "PRJ"}` : "COMPANY-WIDE"}
-                    </span>
-
-                    {/* Priority Badge */}
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${priorityBadgeClass}`}>
-                      {ann.priority}
-                    </span>
-
-                    {/* Status Badge */}
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusBadgeClass}`}>
-                      {ann.status}
-                    </span>
-                  </div>
-
-                  {/* Read Count Badge */}
-                  {ann.read_count !== null && (
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/40">
-                      <Eye className="w-3.5 h-3.5" />
-                      <span><strong>{ann.read_count}</strong> read{ann.read_count !== 1 ? "s" : ""}</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Title & Preview */}
-                <div>
-                  <h3
-                    onClick={() => setViewingAnnouncement(ann)}
-                    className="text-base sm:text-lg font-bold cursor-pointer transition-colors hover:opacity-80"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {ann.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm line-clamp-2 mt-1" style={{ color: "var(--text-secondary)" }}>
-                    {ann.content}
-                  </p>
-                </div>
-
-                {/* Footer Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      {ann.published_at ? new Date(ann.published_at).toLocaleDateString() : "Not published"}
-                    </span>
-                    {ann.expires_at && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <Clock className="w-3.5 h-3.5" />
-                        Expires: {new Date(ann.expires_at).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setViewingAnnouncement(ann)}
-                      className="px-2.5 py-1 text-xs"
-                    >
-                      View
-                    </Button>
-
-                    {ann.status !== "ARCHIVED" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(ann)}
-                        className="px-2.5 py-1 text-xs"
-                      >
-                        <Edit className="w-3.5 h-3.5 mr-1" />
-                        Edit
-                      </Button>
-                    )}
-
-                    {ann.status === "DRAFT" && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handlePublish(ann.id)}
-                        className="px-2.5 py-1 text-xs"
-                      >
-                        <Send className="w-3.5 h-3.5 mr-1" />
-                        Publish
-                      </Button>
-                    )}
-
-                    {ann.status !== "ARCHIVED" && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleArchive(ann.id)}
-                        className="px-2.5 py-1 text-xs"
-                      >
-                        <Archive className="w-3.5 h-3.5 mr-1" />
-                        Archive
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <Megaphone size={14} />
+                HR COMMUNICATION MANAGEMENT
               </div>
-            );
-          })}
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-50 text-gray-700 dark:text-gray-300"
+              <h1
+                style={{
+                  margin: "8px 0 0",
+                  fontSize: "29px",
+                  fontWeight: 800,
+                  letterSpacing: "-0.03em",
+                }}
               >
-                Previous
-              </button>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-50 text-gray-700 dark:text-gray-300"
+                Announcement Center
+              </h1>
+
+              <p
+                style={{
+                  margin: "7px 0 0",
+                  fontSize: "12px",
+                  lineHeight: 1.6,
+                  opacity: 0.75,
+                  maxWidth: "560px",
+                }}
               >
-                Next
+                Create, manage, publish and archive
+                company-wide and project-specific
+                communication.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                width: "100%",
+              }}
+            >
+              <button
+                onClick={() =>
+                  setIsProjectSearchOpen(true)
+                }
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "10px 13px",
+                  borderRadius: "8px",
+                  border:
+                    "1px solid rgba(255,255,255,0.2)",
+                  background:
+                    "rgba(255,255,255,0.09)",
+                  color: "#FFFFFF",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  flex: "1 1 180px",
+                }}
+              >
+                <Folder size={14} />
+                Project Announcement
               </button>
+
+              <button
+                onClick={
+                  handleOpenCompanyCreate
+                }
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "10px 13px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "#FFFFFF",
+                  color: "#166534",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  flex: "1 1 180px",
+                }}
+              >
+                <Plus size={14} />
+                Company Announcement
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            SUMMARY CARDS
+        ================================================= */}
+
+        <section
+          style={{
+            marginTop: "15px",
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "10px",
+          }}
+        >
+          <SummaryCard
+            label="Total"
+            value={allCount}
+            icon={Megaphone}
+            active={activeTab === "ALL"}
+            onClick={() => {
+              setActiveTab("ALL");
+              setPage(1);
+            }}
+          />
+
+          <SummaryCard
+            label="Drafts"
+            value={draftCount}
+            icon={FileText}
+            active={activeTab === "DRAFT"}
+            onClick={() => {
+              setActiveTab("DRAFT");
+              setPage(1);
+            }}
+          />
+
+          <SummaryCard
+            label="Published"
+            value={publishedCount}
+            icon={CheckCircle2}
+            active={activeTab === "PUBLISHED"}
+            onClick={() => {
+              setActiveTab("PUBLISHED");
+              setPage(1);
+            }}
+          />
+
+          <SummaryCard
+            label="Archived"
+            value={archivedCount}
+            icon={Archive}
+            active={activeTab === "ARCHIVED"}
+            onClick={() => {
+              setActiveTab("ARCHIVED");
+              setPage(1);
+            }}
+          />
+        </section>
+
+        {/* =================================================
+            MANAGEMENT AREA
+        ================================================= */}
+
+        <section
+          style={{
+            marginTop: "25px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: "15px",
+              flexWrap: "wrap",
+              marginBottom: "13px",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 800,
+                  color: "#17231B",
+                }}
+              >
+                Manage Announcements
+              </div>
+
+              <div
+                style={{
+                  marginTop: "3px",
+                  color: "#9CA3AF",
+                  fontSize: "10px",
+                }}
+              >
+                Review and manage your communication
+                records.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  width: "250px",
+                }}
+              >
+                <Search
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    left: "10px",
+                    top: "50%",
+                    transform:
+                      "translateY(-50%)",
+                    color: "#9CA3AF",
+                  }}
+                />
+
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(
+                      e.target.value
+                    );
+                    setPage(1);
+                  }}
+                  placeholder="Search announcements..."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding:
+                      "9px 11px 9px 32px",
+                    border:
+                      "1px solid #D1D5DB",
+                    borderRadius: "8px",
+                    outline: "none",
+                    background:
+                      "#FFFFFF",
+                    color: "#17231B",
+                    fontSize: "11px",
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={fetchAnnouncements}
+                disabled={loading}
+                title="Refresh"
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  borderRadius: "8px",
+                  border:
+                    "1px solid #D1D5DB",
+                  background:
+                    "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#166534",
+                  cursor: "pointer",
+                }}
+              >
+                <RefreshCw
+                  size={14}
+                  style={{
+                    animation: loading
+                      ? "hrAnnouncementSpin 1s linear infinite"
+                      : "none",
+                  }}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* =================================================
+              FILTER NAVIGATION
+          ================================================= */}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "4px",
+              background: "#F3F4F6",
+              borderRadius: "10px",
+              overflowX: "auto",
+              marginBottom: "13px",
+            }}
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active =
+                activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding:
+                      "8px 11px",
+                    border: "none",
+                    borderRadius: "7px",
+                    background: active
+                      ? "#FFFFFF"
+                      : "transparent",
+                    color: active
+                      ? "#166534"
+                      : "#6B7280",
+                    fontSize: "10px",
+                    fontWeight: active
+                      ? 800
+                      : 600,
+                    whiteSpace:
+                      "nowrap",
+                    cursor: "pointer",
+                    boxShadow: active
+                      ? "0 1px 3px rgba(0,0,0,0.08)"
+                      : "none",
+                  }}
+                >
+                  <Icon size={13} />
+
+                  {tab.label}
+
+                  <span
+                    style={{
+                      minWidth: "18px",
+                      height: "18px",
+                      padding:
+                        "0 5px",
+                      display: "inline-flex",
+                      alignItems:
+                        "center",
+                      justifyContent:
+                        "center",
+                      borderRadius:
+                        "20px",
+                      background:
+                        active
+                          ? "#DCFCE7"
+                          : "#E5E7EB",
+                      color: active
+                        ? "#166534"
+                        : "#6B7280",
+                      fontSize:
+                        "8px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* =================================================
+              TABLE
+          ================================================= */}
+
+          {loading ? (
+            <div
+              style={{
+                border:
+                  "1px solid #E5E7EB",
+                borderRadius: "12px",
+                overflow: "hidden",
+                background:
+                  "#FFFFFF",
+              }}
+            >
+              {[1, 2, 3, 4, 5].map(
+                (item) => (
+                  <div
+                    key={item}
+                    style={{
+                      height: "78px",
+                      borderBottom:
+                        "1px solid #F1F5F2",
+                      background:
+                        "linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%)",
+                      backgroundSize:
+                        "200% 100%",
+                      animation:
+                        "hrAnnouncementShimmer 1.5s infinite",
+                    }}
+                  />
+                )
+              )}
+            </div>
+          ) : error ? (
+            <div
+              style={{
+                padding: "20px",
+                borderRadius: "12px",
+                background: "#FEF2F2",
+                border:
+                  "1px solid #FECACA",
+                color: "#B91C1C",
+                display: "flex",
+                gap: "10px",
+                alignItems:
+                  "center",
+                fontSize: "12px",
+              }}
+            >
+              <AlertCircle size={19} />
+              {error}
+            </div>
+          ) : announcements.length ===
+            0 ? (
+            <EmptyState
+              search={search}
+              activeTab={
+                activeTab
+              }
+              onCreate={
+                handleOpenCompanyCreate
+              }
+            />
+          ) : (
+            <div
+              style={{
+                border:
+                  "1px solid #E5E7EB",
+                borderRadius: "12px",
+                overflow: "hidden",
+                background:
+                  "#FFFFFF",
+              }}
+            >
+              {/* Table Header */}
+              <div
+                style={{
+                  display:
+                    "grid",
+                  gridTemplateColumns:
+                    "70px minmax(280px, 1fr) 150px 120px 110px 210px",
+                  gap: "10px",
+                  alignItems:
+                    "center",
+                  padding:
+                    "11px 15px",
+                  background:
+                    "#F8FAFC",
+                  borderBottom:
+                    "1px solid #E5E7EB",
+                  color:
+                    "#64748B",
+                  fontSize: "9px",
+                  fontWeight: 800,
+                  letterSpacing:
+                    "0.07em",
+                  textTransform:
+                    "uppercase",
+                }}
+              >
+                <span>Date</span>
+                <span>Announcement</span>
+                <span>Scope</span>
+                <span>Status</span>
+                <span>Audience</span>
+                <span>Actions</span>
+              </div>
+
+              {announcements.map(
+                (ann) => {
+                  return (
+                    <AnnouncementTableRow
+                      key={ann.id}
+                      announcement={
+                        ann
+                      }
+                      onView={() =>
+                        setViewingAnnouncement(
+                          ann
+                        )
+                      }
+                      onEdit={() =>
+                        handleEdit(
+                          ann
+                        )
+                      }
+                      onPublish={() =>
+                        handlePublish(
+                          ann.id
+                        )
+                      }
+                      onArchive={() =>
+                        handleArchive(
+                          ann.id
+                        )
+                      }
+                      getStatusConfig={
+                        getStatusConfig
+                      }
+                      getPriorityConfig={
+                        getPriorityConfig
+                      }
+                    />
+                  );
+                }
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div
+                  style={{
+                    padding:
+                      "13px 15px",
+                    borderTop:
+                      "1px solid #E5E7EB",
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize:
+                        "10px",
+                      color:
+                        "#9CA3AF",
+                    }}
+                  >
+                    Page {page} of{" "}
+                    {totalPages}
+                  </span>
+
+                  <div
+                    style={{
+                      display:
+                        "flex",
+                      gap: "5px",
+                    }}
+                  >
+                    <button
+                      disabled={
+                        page <= 1
+                      }
+                      onClick={() =>
+                        setPage(
+                          (p) =>
+                            Math.max(
+                              1,
+                              p - 1
+                            )
+                        )
+                      }
+                      style={{
+                        padding:
+                          "7px 10px",
+                        border:
+                          "1px solid #D1D5DB",
+                        borderRadius:
+                          "7px",
+                        background:
+                          "#FFFFFF",
+                        color:
+                          "#475569",
+                        fontSize:
+                          "10px",
+                        fontWeight:
+                          700,
+                        cursor:
+                          "pointer",
+                        opacity:
+                          page <= 1
+                            ? 0.4
+                            : 1,
+                      }}
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      disabled={
+                        page >=
+                        totalPages
+                      }
+                      onClick={() =>
+                        setPage(
+                          (p) =>
+                            Math.min(
+                              totalPages,
+                              p + 1
+                            )
+                        )
+                      }
+                      style={{
+                        padding:
+                          "7px 10px",
+                        border:
+                          "1px solid #D1D5DB",
+                        borderRadius:
+                          "7px",
+                        background:
+                          "#FFFFFF",
+                        color:
+                          "#475569",
+                        fontSize:
+                          "10px",
+                        fontWeight:
+                          700,
+                        cursor:
+                          "pointer",
+                        opacity:
+                          page >=
+                          totalPages
+                            ? 0.4
+                            : 1,
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+        </section>
+      </div>
 
-      {/* Project Search Modal */}
+      {/* =====================================================
+          PROJECT SEARCH
+      ===================================================== */}
+
       <ProjectSearchModal
-        isOpen={isProjectSearchOpen}
-        onClose={() => setIsProjectSearchOpen(false)}
-        onSelectProject={handleProjectSelect}
+        isOpen={
+          isProjectSearchOpen
+        }
+        onClose={() =>
+          setIsProjectSearchOpen(
+            false
+          )
+        }
+        onSelectProject={
+          handleProjectSelect
+        }
       />
 
-      {/* Form Modal */}
+      {/* =====================================================
+          FORM
+      ===================================================== */}
+
       <AnnouncementFormModal
         isOpen={isFormOpen}
         onClose={() => {
@@ -444,20 +1096,684 @@ const HRAnnouncements = () => {
           setSelectedProject(null);
           setEditingAnnouncement(null);
         }}
-        onSubmit={handleFormSubmit}
-        selectedProject={selectedProject}
-        editingAnnouncement={editingAnnouncement}
+        onSubmit={
+          handleFormSubmit
+        }
+        selectedProject={
+          selectedProject
+        }
+        editingAnnouncement={
+          editingAnnouncement
+        }
         loading={submitting}
       />
 
-      {/* Detail Modal */}
+      {/* =====================================================
+          DETAIL
+      ===================================================== */}
+
       <AnnouncementDetailModal
-        isOpen={!!viewingAnnouncement}
-        onClose={() => setViewingAnnouncement(null)}
-        announcement={viewingAnnouncement}
+        isOpen={
+          !!viewingAnnouncement
+        }
+        onClose={() =>
+          setViewingAnnouncement(
+            null
+          )
+        }
+        announcement={
+          viewingAnnouncement
+        }
       />
+
+      <style>
+        {`
+          @keyframes hrAnnouncementSpin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @keyframes hrAnnouncementShimmer {
+            0% {
+              background-position: 200% 0;
+            }
+            100% {
+              background-position: -200% 0;
+            }
+          }
+        `}
+      </style>
+    </AppLayout>
+  );
+};
+
+/* =========================================================
+   SUMMARY CARD
+========================================================= */
+
+const SummaryCard = ({
+  label,
+  value,
+  icon: Icon,
+  active,
+  onClick,
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        textAlign: "left",
+        padding: "15px",
+        borderRadius: "12px",
+        border: active
+          ? "1px solid #86EFAC"
+          : "1px solid #E5E7EB",
+        background: active
+          ? "#F0FDF4"
+          : "#FFFFFF",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+        }}
+      >
+        <div
+          style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "9px",
+            display: "flex",
+            alignItems:
+              "center",
+            justifyContent:
+              "center",
+            background: active
+              ? "#DCFCE7"
+              : "#F3F4F6",
+            color: active
+              ? "#166534"
+              : "#64748B",
+          }}
+        >
+          <Icon size={16} />
+        </div>
+
+        {active && (
+          <span
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius:
+                "50%",
+              background:
+                "#16A34A",
+            }}
+          />
+        )}
+      </div>
+
+      <div
+        style={{
+          marginTop: "12px",
+          fontSize: "23px",
+          fontWeight: 900,
+          color: "#17231B",
+        }}
+      >
+        {value}
+      </div>
+
+      <div
+        style={{
+          marginTop: "2px",
+          fontSize: "10px",
+          fontWeight: 700,
+          color: "#6B7280",
+        }}
+      >
+        {label}
+      </div>
+    </button>
+  );
+};
+
+/* =========================================================
+   TABLE ROW
+========================================================= */
+
+const AnnouncementTableRow = ({
+  announcement,
+  onView,
+  onEdit,
+  onPublish,
+  onArchive,
+  getStatusConfig,
+  getPriorityConfig,
+}) => {
+  const status =
+    getStatusConfig(
+      announcement.status
+    );
+
+  const StatusIcon =
+    status.icon;
+
+  const priority =
+    getPriorityConfig(
+      announcement.priority
+    );
+
+  const isProject =
+    announcement.announcement_scope ===
+    "PROJECT";
+
+  const date = announcement.published_at
+    ? new Date(
+        announcement.published_at
+      )
+    : null;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "70px minmax(280px, 1fr) 150px 120px 110px 210px",
+        gap: "10px",
+        alignItems: "center",
+        padding:
+          "14px 15px",
+        borderBottom:
+          "1px solid #F1F5F2",
+        transition:
+          "background 0.2s ease",
+      }}
+    >
+      {/* Date */}
+      <div>
+        {date ? (
+          <>
+            <div
+              style={{
+                fontSize:
+                  "16px",
+                fontWeight:
+                  900,
+                color:
+                  "#17231B",
+              }}
+            >
+              {date
+                .getDate()
+                .toString()
+                .padStart(
+                  2,
+                  "0"
+                )}
+            </div>
+
+            <div
+              style={{
+                marginTop:
+                  "2px",
+                fontSize:
+                  "8px",
+                fontWeight:
+                  800,
+                color:
+                  "#9CA3AF",
+              }}
+            >
+              {date
+                .toLocaleString(
+                  "en-US",
+                  {
+                    month:
+                      "short",
+                  }
+                )
+                .toUpperCase()}
+            </div>
+          </>
+        ) : (
+          <span
+            style={{
+              color:
+                "#9CA3AF",
+              fontSize:
+                "10px",
+            }}
+          >
+            Draft
+          </span>
+        )}
+      </div>
+
+      {/* Announcement */}
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems:
+              "center",
+            gap: "6px",
+            flexWrap:
+              "wrap",
+          }}
+        >
+          <span
+            style={{
+              width: "5px",
+              height: "5px",
+              borderRadius:
+                "50%",
+              background:
+                priority.dot,
+            }}
+          />
+
+          <span
+            style={{
+              color:
+                priority.color,
+              fontSize:
+                "8px",
+              fontWeight:
+                800,
+              textTransform:
+                "uppercase",
+            }}
+          >
+            {announcement.priority}
+          </span>
+        </div>
+
+        <div
+          style={{
+            marginTop:
+              "4px",
+            color:
+              "#17231B",
+            fontSize:
+              "12px",
+            fontWeight:
+              800,
+            overflow:
+              "hidden",
+            textOverflow:
+              "ellipsis",
+            whiteSpace:
+              "nowrap",
+          }}
+        >
+          {announcement.title}
+        </div>
+
+        <div
+          style={{
+            marginTop:
+              "3px",
+            color:
+              "#9CA3AF",
+            fontSize:
+              "9px",
+            overflow:
+              "hidden",
+            textOverflow:
+              "ellipsis",
+            whiteSpace:
+              "nowrap",
+          }}
+        >
+          {announcement.content}
+        </div>
+      </div>
+
+      {/* Scope */}
+      <div>
+        <span
+          style={{
+            display:
+              "inline-flex",
+            alignItems:
+              "center",
+            gap: "5px",
+            padding:
+              "5px 7px",
+            borderRadius:
+              "5px",
+            background:
+              isProject
+                ? "#F0FDF4"
+                : "#F8FAFC",
+            color:
+              isProject
+                ? "#166534"
+                : "#475569",
+            border:
+              `1px solid ${
+                isProject
+                  ? "#BBF7D0"
+                  : "#E2E8F0"
+              }`,
+            fontSize:
+              "8px",
+            fontWeight:
+              800,
+          }}
+        >
+          {isProject ? (
+            <Folder size={10} />
+          ) : (
+            <Building2
+              size={10}
+            />
+          )}
+
+          {isProject
+            ? announcement.project_code ||
+              "PROJECT"
+            : "COMPANY"}
+        </span>
+      </div>
+
+      {/* Status */}
+      <div>
+        <span
+          style={{
+            display:
+              "inline-flex",
+            alignItems:
+              "center",
+            gap: "5px",
+            padding:
+              "5px 7px",
+            borderRadius:
+              "5px",
+            background:
+              status.background,
+            color:
+              status.color,
+            border:
+              `1px solid ${status.border}`,
+            fontSize:
+              "8px",
+            fontWeight:
+              800,
+          }}
+        >
+          <StatusIcon
+            size={10}
+          />
+
+          {status.label}
+        </span>
+      </div>
+
+      {/* Audience */}
+      <div
+        style={{
+          color:
+            "#6B7280",
+          fontSize:
+            "9px",
+        }}
+      >
+        {isProject
+          ? announcement.project_name ||
+            "Project team"
+          : "All employees"}
+      </div>
+
+      {/* Actions */}
+      <div
+        style={{
+          display:
+            "flex",
+          alignItems:
+            "center",
+          gap: "5px",
+        }}
+      >
+        <ActionButton
+          icon={Eye}
+          label="View"
+          onClick={onView}
+        />
+
+        {announcement.status !==
+          "ARCHIVED" && (
+          <ActionButton
+            icon={Edit}
+            label="Edit"
+            onClick={onEdit}
+          />
+        )}
+
+        {announcement.status ===
+          "DRAFT" && (
+          <ActionButton
+            icon={Send}
+            label="Publish"
+            primary
+            onClick={
+              onPublish
+            }
+          />
+        )}
+
+        {announcement.status !==
+          "ARCHIVED" && (
+          <ActionButton
+            icon={Archive}
+            label="Archive"
+            danger
+            onClick={
+              onArchive
+            }
+          />
+        )}
+      </div>
     </div>
-  </AppLayout>
+  );
+};
+
+/* =========================================================
+   ACTION BUTTON
+========================================================= */
+
+const ActionButton = ({
+  icon: Icon,
+  label,
+  onClick,
+  primary = false,
+  danger = false,
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        display: "flex",
+        alignItems:
+          "center",
+        gap: "4px",
+        padding:
+          "6px 7px",
+        borderRadius:
+          "6px",
+        border:
+          `1px solid ${
+            danger
+              ? "#FECACA"
+              : primary
+              ? "#BBF7D0"
+              : "#E5E7EB"
+          }`,
+        background:
+          danger
+            ? "#FEF2F2"
+            : primary
+            ? "#F0FDF4"
+            : "#FFFFFF",
+        color:
+          danger
+            ? "#B91C1C"
+            : primary
+            ? "#166534"
+            : "#64748B",
+        fontSize:
+          "8px",
+        fontWeight:
+          800,
+        cursor:
+          "pointer",
+        whiteSpace:
+          "nowrap",
+      }}
+    >
+      <Icon size={10} />
+      {label}
+    </button>
+  );
+};
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+const EmptyState = ({
+  search,
+  activeTab,
+  onCreate,
+}) => {
+  return (
+    <div
+      style={{
+        minHeight: "350px",
+        display: "flex",
+        flexDirection:
+          "column",
+        alignItems:
+          "center",
+        justifyContent:
+          "center",
+        border:
+          "1px solid #E5E7EB",
+        borderRadius:
+          "13px",
+        background:
+          "#FFFFFF",
+        textAlign:
+          "center",
+      }}
+    >
+      <div
+        style={{
+          width: "58px",
+          height: "58px",
+          borderRadius:
+            "14px",
+          background:
+            "#F0FDF4",
+          color:
+            "#15803D",
+          display: "flex",
+          alignItems:
+            "center",
+          justifyContent:
+            "center",
+        }}
+      >
+        <Megaphone
+          size={26}
+        />
+      </div>
+
+      <h3
+        style={{
+          margin:
+            "15px 0 0",
+          color:
+            "#17231B",
+          fontSize:
+            "15px",
+          fontWeight:
+            800,
+        }}
+      >
+        No announcements found
+      </h3>
+
+      <p
+        style={{
+          margin:
+            "6px 0 0",
+          color:
+            "#9CA3AF",
+          fontSize:
+            "10px",
+          maxWidth:
+            "350px",
+          lineHeight:
+            1.6,
+        }}
+      >
+        {search
+          ? "No announcements match your search. Try a different keyword."
+          : `There are no announcements in the ${activeTab.toLowerCase()} section.`}
+      </p>
+
+      {!search &&
+        activeTab ===
+          "ALL" && (
+          <button
+            onClick={onCreate}
+            style={{
+              marginTop:
+                "15px",
+              display:
+                "flex",
+              alignItems:
+                "center",
+              gap: "6px",
+              padding:
+                "8px 11px",
+              border:
+                "none",
+              borderRadius:
+                "7px",
+              background:
+                "#166534",
+              color:
+                "#FFFFFF",
+              fontSize:
+                "10px",
+              fontWeight:
+                800,
+              cursor:
+                "pointer",
+            }}
+          >
+            <Plus size={12} />
+            Create Announcement
+          </button>
+        )}
+    </div>
   );
 };
 

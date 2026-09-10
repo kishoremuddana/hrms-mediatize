@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.authentication_service.dependencies import (
     get_current_hr,
-    get_current_user_with_password_check,
+    get_current_user,
 )
 from app.authentication_service.models import User
 from app.complaint_service import service
@@ -49,7 +49,7 @@ router = APIRouter(prefix="/complaints", tags=["Complaint Management"])
 )
 def get_active_categories_endpoint(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_active_categories(db)
 
@@ -68,7 +68,7 @@ async def submit_complaint_endpoint(
     priority: Optional[ComplaintPriority] = Form(ComplaintPriority.MEDIUM, description="Initial priority level"),
     attachment: Optional[UploadFile] = File(None, description="Optional supporting document attachment"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     ip_address = request.client.host if request.client else None
     return await service.create_complaint(
@@ -95,7 +95,7 @@ def get_my_complaints_endpoint(
     complaint_status: Optional[ComplaintStatus] = Query(None, alias="status"),
     category_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_my_complaints(
         db=db,
@@ -116,7 +116,7 @@ def get_my_complaints_endpoint(
 def get_my_complaint_by_id_endpoint(
     complaint_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_my_complaint_by_id(
         db=db,

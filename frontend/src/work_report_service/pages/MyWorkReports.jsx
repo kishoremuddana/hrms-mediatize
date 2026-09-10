@@ -1,9 +1,29 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Eye, Paperclip, FileText, ChevronLeft, ChevronRight, X, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  Plus,
+  Eye,
+  Paperclip,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ArrowLeft,
+  RefreshCw,
+  Calendar,
+  FolderKanban,
+  ClipboardList,
+  AlertTriangle,
+  ExternalLink,
+  RotateCcw,
+} from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
-import { getMyWorkReports, getMyAssignedProjects } from "../services/workReportApi";
+import {
+  getMyWorkReports,
+  getMyAssignedProjects,
+} from "../services/workReportApi";
 import { showError } from "../../shared/utils/toast";
 
 function MyWorkReports() {
@@ -20,7 +40,9 @@ function MyWorkReports() {
   // Detail Modal State
   const [selectedReport, setSelectedReport] = useState(null);
 
-  // Fetch assigned projects for filter dropdown
+  // ---------------------------------------------------------
+  // Load assigned projects
+  // ---------------------------------------------------------
   useEffect(() => {
     async function loadProjects() {
       try {
@@ -30,19 +52,25 @@ function MyWorkReports() {
         console.error("Failed to load projects for filter", err);
       }
     }
+
     loadProjects();
   }, []);
 
-  // Fetch employee's work reports
+  // ---------------------------------------------------------
+  // Fetch employee work reports
+  // ---------------------------------------------------------
   const fetchReports = useCallback(async () => {
     setLoading(true);
+
     try {
       const params = {
         page,
         limit: 10,
         project_id: selectedProjectId || undefined,
       };
+
       const res = await getMyWorkReports(params);
+
       setReports(res.data?.items || []);
       setTotalPages(res.data?.pages || 1);
       setTotalItems(res.data?.total || 0);
@@ -58,258 +86,846 @@ function MyWorkReports() {
     fetchReports();
   }, [fetchReports]);
 
+  // ---------------------------------------------------------
+  // Reset project filter
+  // ---------------------------------------------------------
+  const handleResetFilter = () => {
+    setSelectedProjectId("");
+    setPage(1);
+  };
+
+  // ---------------------------------------------------------
+  // Close modal
+  // ---------------------------------------------------------
+  const closeModal = () => {
+    setSelectedReport(null);
+  };
+
+  // ---------------------------------------------------------
+  // Statistics based on loaded reports
+  // ---------------------------------------------------------
+  const blockerCount = reports.filter(
+    (report) => report.problems_faced
+  ).length;
+
+  const attachmentCount = reports.filter(
+    (report) => report.document_url
+  ).length;
+
   return (
     <AppLayout title="My Work Reports">
-      <div style={styles.container}>
-        <BackToDashboard to="/employee/dashboard" role="EMPLOYEE" icon={ArrowLeft} />
+      <div style={styles.page}>
+        {/* =====================================================
+            TOP NAVIGATION
+        ====================================================== */}
+        <div style={styles.topNavigation}>
+          <BackToDashboard
+            to="/employee/dashboard"
+            role="EMPLOYEE"
+            icon={ArrowLeft}
+          />
 
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>My Work Reports</h1>
-            <p style={styles.subtitle}>
-              Track and review all your submitted daily work reports and task progress
-            </p>
-          </div>
-
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <div style={styles.topActions}>
             <button
-              style={{ ...styles.secondaryNavBtn, display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
+              type="button"
               onClick={fetchReports}
               disabled={loading}
-              title="Refresh"
-            >
-              <RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh
-            </button>
-            <Link
-              to="/employee/work-reports/new"
-              style={{ ...styles.primaryNavBtn, display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
-            >
-              <Plus size={16} /> Submit Today's Report
-            </Link>
-          </div>
-        </div>
-
-        {/* Filter Bar */}
-        <div style={styles.filterCard}>
-          <div style={styles.filterGroup}>
-            <label style={styles.filterLabel}>Filter by Project:</label>
-            <select
-              style={styles.select}
-              value={selectedProjectId}
-              onChange={(e) => {
-                setSelectedProjectId(e.target.value);
-                setPage(1);
+              style={{
+                ...styles.refreshButton,
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              <option value="">All Assigned Projects</option>
-              {projects.map((p) => (
-                <option key={p.project_id} value={p.project_id}>
-                  {p.project_name} ({p.project_code})
-                </option>
-              ))}
-            </select>
-          </div>
+              <RefreshCw
+                size={15}
+                style={{
+                  animation: loading
+                    ? "spin 1s linear infinite"
+                    : "none",
+                }}
+              />
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
 
-          <div style={styles.summaryBadge}>
-            Total Reports: <strong>{totalItems}</strong>
+            <Link
+              to="/employee/work-reports/new"
+              style={styles.submitButton}
+            >
+              <Plus size={16} />
+              Submit Today's Report
+            </Link>
           </div>
         </div>
 
-        {/* Reports Table View (Desktop ≥768px) */}
-        {loading ? (
-          <div style={styles.emptyState}>Loading work reports...</div>
-        ) : reports.length === 0 ? (
-          <div style={styles.emptyCard}>
-            <FileText size={40} style={{ color: "var(--text-muted)", marginBottom: "0.75rem" }} />
-            <h3 style={styles.emptyTitle}>No Work Reports Found</h3>
-            <p style={styles.emptySubtitle}>
-              {selectedProjectId
-                ? "No work reports submitted for the selected project filter."
-                : "You have not submitted any daily work reports yet."}
+        {/* =====================================================
+            HERO
+        ====================================================== */}
+        <section style={styles.hero}>
+          <div style={styles.heroContent}>
+            <div style={styles.eyebrow}>
+              <ClipboardList size={14} />
+              EMPLOYEE WORKSPACE
+            </div>
+
+            <h1 style={styles.title}>My Work Reports</h1>
+
+            <p style={styles.subtitle}>
+              Track your daily submissions, review your project
+              activities, and keep your work progress organized.
             </p>
-            <Link to="/employee/work-reports/new" style={{ ...styles.primaryNavBtn, marginTop: "1rem", display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
-              <Plus size={16} /> Submit Your First Report
-            </Link>
+
+            <div style={styles.heroMeta}>
+              <span style={styles.heroMetaItem}>
+                <FileText size={14} />
+                Daily Reports
+              </span>
+
+              <span style={styles.heroDivider}>•</span>
+
+              <span style={styles.heroMetaItem}>
+                <FolderKanban size={14} />
+                Project Activity
+              </span>
+
+              <span style={styles.heroDivider}>•</span>
+
+              <span style={styles.heroMetaItem}>
+                <Calendar size={14} />
+                Work History
+              </span>
+            </div>
           </div>
-        ) : (
-          <div>
-            <div className="employee-desktop-table" style={styles.tableWrapper}>
-              <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Report Date</th>
-                      <th style={styles.th}>Project</th>
-                      <th style={styles.th}>Work Description</th>
-                      <th style={styles.th}>Attachment</th>
-                      <th style={styles.th}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reports.map((r) => (
-                      <tr key={r.id} style={styles.tr}>
-                        <td style={styles.td}>
-                          <strong>{r.report_date}</strong>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={{ fontWeight: "600" }}>{r.project_name || "Project"}</div>
-                          <span style={styles.subText}>{r.project_code}</span>
-                        </td>
-                        <td style={{ ...styles.td, maxWidth: "300px" }}>
-                          <div style={styles.descriptionSnippet}>
-                            {r.work_description}
-                          </div>
-                          {r.problems_faced && (
-                            <span style={styles.blockerBadge} title={r.problems_faced}>
-                              Blockers Reported
-                            </span>
-                          )}
-                        </td>
-                        <td style={styles.td}>
-                          {r.document_url ? (
-                            <a
-                              href={r.document_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={styles.attachmentLink}
-                            >
-                              <Paperclip size={14} /> {r.document_name || "Attachment"}
-                            </a>
-                          ) : (
-                            <span style={styles.subText}>No attachment</span>
-                          )}
-                        </td>
-                        <td style={styles.td}>
-                          <button
-                            style={styles.viewBtn}
-                            onClick={() => setSelectedReport(r)}
-                          >
-                            <Eye size={14} /> View
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+          <div style={styles.heroSide}>
+            <div style={styles.heroIcon}>
+              <ClipboardList size={34} />
+            </div>
+
+            <div>
+              <div style={styles.heroSideLabel}>YOUR REPORTS</div>
+              <div style={styles.heroSideValue}>
+                {totalItems}
+              </div>
+              <div style={styles.heroSideText}>
+                Total submissions
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            SUMMARY CARDS
+        ====================================================== */}
+        <section style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <FileText size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Total Reports</div>
+              <div style={styles.statValue}>{totalItems}</div>
+            </div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <FolderKanban size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Assigned Projects</div>
+              <div style={styles.statValue}>
+                {projects.length}
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>
+              <Paperclip size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Attachments</div>
+              <div style={styles.statValue}>
+                {attachmentCount}
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.statCardWarning}>
+            <div style={styles.statIconWarning}>
+              <AlertTriangle size={19} />
+            </div>
+
+            <div>
+              <div style={styles.statLabel}>Reported Issues</div>
+              <div style={styles.statValue}>
+                {blockerCount}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            PROJECT FILTER WORKSPACE
+        ====================================================== */}
+        <section style={styles.filterCard}>
+          <div style={styles.filterHeader}>
+            <div>
+              <div style={styles.sectionEyebrow}>
+                <FolderKanban size={14} />
+                REPORT FILTER
+              </div>
+
+              <h2 style={styles.sectionTitle}>
+                Find Your Reports
+              </h2>
+
+              <p style={styles.sectionDescription}>
+                Filter your submitted reports by assigned project.
+              </p>
+            </div>
+
+            {selectedProjectId && (
+              <button
+                type="button"
+                onClick={handleResetFilter}
+                style={styles.clearButton}
+              >
+                <RotateCcw size={14} />
+                Clear Filter
+              </button>
+            )}
+          </div>
+
+          <div style={styles.filterBody}>
+            <div style={styles.filterField}>
+              <label style={styles.filterLabel}>
+                Assigned Project
+              </label>
+
+              <div style={styles.selectWrapper}>
+                <FolderKanban
+                  size={16}
+                  style={styles.selectIcon}
+                />
+
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => {
+                    setSelectedProjectId(e.target.value);
+                    setPage(1);
+                  }}
+                  aria-label="Filter by project"
+                  style={styles.select}
+                >
+                  <option value="">
+                    All Assigned Projects
+                  </option>
+
+                  {projects.map((project) => (
+                    <option
+                      key={project.project_id}
+                      value={project.project_id}
+                    >
+                      {project.project_name} (
+                      {project.project_code})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Mobile Cards View (<768px) */}
-            <div className="employee-mobile-cards" style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              {reports.map((r) => (
-                <div key={r.id} style={styles.mobileCard}>
-                  <div style={styles.mobileCardHeader}>
-                    <div>
-                      <h4 style={styles.mobileCardTitle}>{r.project_name || "Project"}</h4>
-                      <span style={styles.subText}>{r.report_date} &bull; {r.project_code}</span>
-                    </div>
-                    <button style={styles.viewBtn} onClick={() => setSelectedReport(r)}>
-                      <Eye size={14} /> View
-                    </button>
-                  </div>
-                  <div style={styles.mobileCardBody}>
-                    <p style={styles.mobileDesc}>{r.work_description}</p>
-                    {r.problems_faced && (
-                      <div style={styles.mobileBlocker}>
-                        <strong>Problems Faced:</strong> {r.problems_faced}
-                      </div>
-                    )}
-                    {r.document_url && (
-                      <div style={{ marginTop: "0.375rem" }}>
-                        <a href={r.document_url} target="_blank" rel="noopener noreferrer" style={styles.attachmentLink}>
-                          <Paperclip size={14} /> {r.document_name || "View Attachment"}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div style={styles.filterSummary}>
+              <span style={styles.filterSummaryLabel}>
+                REPORTS
+              </span>
+
+              <strong style={styles.filterSummaryValue}>
+                {totalItems}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            REPORT DIRECTORY
+        ====================================================== */}
+        <section style={styles.reportSection}>
+          <div style={styles.reportHeader}>
+            <div>
+              <div style={styles.sectionEyebrow}>
+                <ClipboardList size={14} />
+                REPORT HISTORY
+              </div>
+
+              <h2 style={styles.sectionTitle}>
+                Your Submitted Reports
+              </h2>
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={styles.paginationRow}>
-                <span style={styles.pageInfo}>
-                  Page <strong>{page}</strong> of <strong>{totalPages}</strong> ({totalItems} total)
-                </span>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button
-                    style={styles.pageBtn}
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft size={16} /> Prev
-                  </button>
-                  <button
-                    style={styles.pageBtn}
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  >
-                    Next <ChevronRight size={16} />
-                  </button>
-                </div>
+            {!loading && reports.length > 0 && (
+              <div style={styles.pageBadge}>
+                Page {page} of {totalPages}
               </div>
             )}
           </div>
-        )}
 
-        {/* Report Details Modal */}
-        {selectedReport && (
-          <div style={styles.modalOverlay} onClick={() => setSelectedReport(null)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <div>
-                  <h3 style={styles.modalTitle}>Work Report Details</h3>
-                  <span style={styles.modalSub}>{selectedReport.report_date}</span>
+          {/* ===================================================
+              LOADING
+          ==================================================== */}
+          {loading ? (
+            <div style={styles.loadingCard}>
+              <div style={styles.loadingIcon}>
+                <RefreshCw size={23} />
+              </div>
+
+              <h3 style={styles.loadingTitle}>
+                Loading your reports
+              </h3>
+
+              <p style={styles.loadingText}>
+                Fetching your submitted work reports...
+              </p>
+            </div>
+          ) : reports.length === 0 ? (
+            /* =================================================
+                EMPTY STATE
+            ================================================== */
+            <div style={styles.emptyCard}>
+              <div style={styles.emptyIcon}>
+                <FileText size={30} />
+              </div>
+
+              <h3 style={styles.emptyTitle}>
+                No Work Reports Found
+              </h3>
+
+              <p style={styles.emptySubtitle}>
+                {selectedProjectId
+                  ? "No work reports submitted for the selected project filter."
+                  : "You have not submitted any daily work reports yet."}
+              </p>
+
+              {selectedProjectId ? (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  style={styles.emptySecondaryButton}
+                >
+                  <RotateCcw size={14} />
+                  Clear Project Filter
+                </button>
+              ) : (
+                <Link
+                  to="/employee/work-reports/new"
+                  style={styles.emptyPrimaryButton}
+                >
+                  <Plus size={15} />
+                  Submit Your First Report
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* =================================================
+                  DESKTOP TABLE
+              ================================================== */}
+              <div
+                className="my-work-reports-desktop"
+                style={styles.tableCard}
+              >
+                <div style={styles.tableScroll}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.tableHead}>
+                          Report Date
+                        </th>
+
+                        <th style={styles.tableHead}>
+                          Project
+                        </th>
+
+                        <th style={styles.tableHead}>
+                          Work Description
+                        </th>
+
+                        <th style={styles.tableHead}>
+                          Attachment
+                        </th>
+
+                        <th style={styles.tableHead}>
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {reports.map((report) => (
+                        <tr
+                          key={report.id}
+                          style={styles.tableRow}
+                        >
+                          {/* Date */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.dateCell}>
+                              <div style={styles.dateIcon}>
+                                <Calendar size={15} />
+                              </div>
+
+                              <div>
+                                <div style={styles.dateValue}>
+                                  {report.report_date}
+                                </div>
+
+                                <div style={styles.dateLabel}>
+                                  Report submitted
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Project */}
+                          <td style={styles.tableCell}>
+                            <div style={styles.projectCell}>
+                              <div style={styles.projectIcon}>
+                                <FolderKanban size={15} />
+                              </div>
+
+                              <div>
+                                <div
+                                  style={
+                                    styles.projectName
+                                  }
+                                >
+                                  {report.project_name ||
+                                    "Project"}
+                                </div>
+
+                                <div
+                                  style={
+                                    styles.projectCode
+                                  }
+                                >
+                                  {report.project_code ||
+                                    "No project code"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Description */}
+                          <td style={styles.tableCell}>
+                            <div
+                              style={
+                                styles.descriptionWrapper
+                              }
+                            >
+                              <div
+                                style={
+                                  styles.descriptionSnippet
+                                }
+                              >
+                                {report.work_description}
+                              </div>
+
+                              {report.problems_faced && (
+                                <span
+                                  style={
+                                    styles.blockerBadge
+                                  }
+                                  title={
+                                    report.problems_faced
+                                  }
+                                >
+                                  <AlertTriangle
+                                    size={11}
+                                  />
+                                  Issue Reported
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Attachment */}
+                          <td style={styles.tableCell}>
+                            {report.document_url ? (
+                              <a
+                                href={report.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={styles.attachmentLink}
+                              >
+                                <Paperclip size={14} />
+
+                                <span>
+                                  {report.document_name ||
+                                    "Attachment"}
+                                </span>
+
+                                <ExternalLink
+                                  size={11}
+                                />
+                              </a>
+                            ) : (
+                              <span
+                                style={
+                                  styles.noAttachment
+                                }
+                              >
+                                No attachment
+                              </span>
+                            )}
+                          </td>
+
+                          {/* View */}
+                          <td style={styles.tableCell}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedReport(report)
+                              }
+                              style={styles.viewButton}
+                            >
+                              <Eye size={14} />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <button style={styles.closeBtn} onClick={() => setSelectedReport(null)} aria-label="Close">
+              </div>
+
+              {/* =================================================
+                  MOBILE CARDS
+              ================================================== */}
+              <div
+                className="my-work-reports-mobile"
+                style={styles.mobileList}
+              >
+                {reports.map((report) => (
+                  <article
+                    key={report.id}
+                    style={styles.mobileCard}
+                  >
+                    <div style={styles.mobileTop}>
+                      <div style={styles.mobileDate}>
+                        <div style={styles.mobileDateIcon}>
+                          <Calendar size={15} />
+                        </div>
+
+                        <div>
+                          <div style={styles.mobileDateValue}>
+                            {report.report_date}
+                          </div>
+
+                          <div style={styles.mobileDateLabel}>
+                            Daily report
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedReport(report)
+                        }
+                        style={styles.mobileViewButton}
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </div>
+
+                    <div style={styles.mobileProject}>
+                      <div style={styles.mobileProjectIcon}>
+                        <FolderKanban size={15} />
+                      </div>
+
+                      <div>
+                        <div style={styles.mobileProjectName}>
+                          {report.project_name ||
+                            "Project"}
+                        </div>
+
+                        <div style={styles.mobileProjectCode}>
+                          {report.project_code ||
+                            "No project code"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={styles.mobileDivider} />
+
+                    <div style={styles.mobileDescription}>
+                      <div style={styles.mobileLabel}>
+                        WORK DESCRIPTION
+                      </div>
+
+                      <p style={styles.mobileDescriptionText}>
+                        {report.work_description}
+                      </p>
+                    </div>
+
+                    {report.problems_faced && (
+                      <div style={styles.mobileBlocker}>
+                        <AlertTriangle size={14} />
+
+                        <div>
+                          <strong>Problems Faced</strong>
+
+                          <p
+                            style={
+                              styles.mobileBlockerText
+                            }
+                          >
+                            {report.problems_faced}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {report.document_url && (
+                      <a
+                        href={report.document_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={styles.mobileAttachment}
+                      >
+                        <Paperclip size={14} />
+
+                        <span>
+                          {report.document_name ||
+                            "View Attachment"}
+                        </span>
+
+                        <ExternalLink size={11} />
+                      </a>
+                    )}
+                  </article>
+                ))}
+              </div>
+
+              {/* =================================================
+                  PAGINATION
+              ================================================== */}
+              {totalPages > 1 && (
+                <div style={styles.pagination}>
+                  <div style={styles.paginationInfo}>
+                    Page <strong>{page}</strong> of{" "}
+                    <strong>{totalPages}</strong>
+
+                    <span style={styles.totalText}>
+                      ({totalItems} total reports)
+                    </span>
+                  </div>
+
+                  <div style={styles.paginationActions}>
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() =>
+                        setPage((currentPage) =>
+                          Math.max(1, currentPage - 1)
+                        )
+                      }
+                      style={{
+                        ...styles.paginationButton,
+                        opacity: page <= 1 ? 0.45 : 1,
+                        cursor:
+                          page <= 1
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      <ChevronLeft size={15} />
+                      Previous
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={page >= totalPages}
+                      onClick={() =>
+                        setPage((currentPage) =>
+                          Math.min(
+                            totalPages,
+                            currentPage + 1
+                          )
+                        )
+                      }
+                      style={{
+                        ...styles.paginationButton,
+                        opacity:
+                          page >= totalPages ? 0.45 : 1,
+                        cursor:
+                          page >= totalPages
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      Next
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* =====================================================
+            REPORT DETAILS MODAL
+        ====================================================== */}
+        {selectedReport && (
+          <div
+            style={styles.modalOverlay}
+            onClick={closeModal}
+          >
+            <div
+              style={styles.modal}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={styles.modalHeader}>
+                <div style={styles.modalHeaderLeft}>
+                  <div style={styles.modalIcon}>
+                    <FileText size={20} />
+                  </div>
+
+                  <div>
+                    <div style={styles.modalEyebrow}>
+                      WORK REPORT
+                    </div>
+
+                    <h3 style={styles.modalTitle}>
+                      Work Report Details
+                    </h3>
+
+                    <div style={styles.modalSub}>
+                      {selectedReport.report_date}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  style={styles.closeButton}
+                  aria-label="Close"
+                >
                   <X size={18} />
                 </button>
               </div>
 
+              {/* Modal Body */}
               <div style={styles.modalBody}>
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Project</label>
+                {/* Project */}
+                <div style={styles.detailCard}>
+                  <div style={styles.detailCardHeader}>
+                    <FolderKanban size={15} />
+                    PROJECT
+                  </div>
+
                   <div style={styles.detailValue}>
-                    {selectedReport.project_name} ({selectedReport.project_code})
+                    {selectedReport.project_name ||
+                      "Project"}
+                  </div>
+
+                  <div style={styles.detailSubValue}>
+                    {selectedReport.project_code ||
+                      "No project code"}
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Work Description</label>
-                  <div style={styles.detailTextContent}>
-                    {selectedReport.work_description}
+                {/* Date */}
+                <div style={styles.detailCard}>
+                  <div style={styles.detailCardHeader}>
+                    <Calendar size={15} />
+                    REPORT DATE
+                  </div>
+
+                  <div style={styles.detailValue}>
+                    {selectedReport.report_date}
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Problems Faced</label>
-                  <div style={styles.detailTextContent}>
-                    {selectedReport.problems_faced ? selectedReport.problems_faced : "None reported."}
+                {/* Work Description */}
+                <div style={styles.detailSection}>
+                  <div style={styles.detailSectionTitle}>
+                    <FileText size={15} />
+                    Work Description
+                  </div>
+
+                  <div style={styles.detailContent}>
+                    {selectedReport.work_description ||
+                      "No work description provided."}
                   </div>
                 </div>
 
-                <div style={styles.detailRow}>
-                  <label style={styles.detailLabel}>Attachment</label>
-                  <div>
-                    {selectedReport.document_url ? (
-                      <a
-                        href={selectedReport.document_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={styles.attachmentButton}
-                      >
-                        <Paperclip size={16} /> Download / View {selectedReport.document_name || "Attachment"}
-                      </a>
-                    ) : (
-                      <span style={styles.subText}>No attachment uploaded</span>
-                    )}
+                {/* Problems */}
+                <div style={styles.detailSection}>
+                  <div style={styles.detailSectionTitle}>
+                    <AlertTriangle size={15} />
+                    Problems Faced
                   </div>
+
+                  <div
+                    style={{
+                      ...styles.detailContent,
+                      ...(selectedReport.problems_faced
+                        ? styles.problemContent
+                        : {}),
+                    }}
+                  >
+                    {selectedReport.problems_faced ||
+                      "None reported."}
+                  </div>
+                </div>
+
+                {/* Attachment */}
+                <div style={styles.detailSection}>
+                  <div style={styles.detailSectionTitle}>
+                    <Paperclip size={15} />
+                    Attachment
+                  </div>
+
+                  {selectedReport.document_url ? (
+                    <a
+                      href={selectedReport.document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.documentButton}
+                    >
+                      <Paperclip size={16} />
+
+                      <span>
+                        Download / View{" "}
+                        {selectedReport.document_name ||
+                          "Attachment"}
+                      </span>
+
+                      <ExternalLink size={13} />
+                    </a>
+                  ) : (
+                    <div style={styles.noDocument}>
+                      No attachment uploaded
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Modal Footer */}
               <div style={styles.modalFooter}>
-                <button style={styles.secondaryBtn} onClick={() => setSelectedReport(null)}>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  style={styles.modalCloseButton}
+                >
                   Close
                 </button>
               </div>
@@ -317,362 +933,1160 @@ function MyWorkReports() {
           </div>
         )}
       </div>
+
+      {/* =======================================================
+          RESPONSIVE CSS
+      ======================================================== */}
+      <style>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .my-work-reports-desktop {
+            display: block;
+          }
+
+          .my-work-reports-mobile {
+            display: none;
+          }
+
+          @media (max-width: 900px) {
+            .my-work-reports-desktop {
+              display: block;
+            }
+          }
+
+          @media (max-width: 767px) {
+            .my-work-reports-desktop {
+              display: none !important;
+            }
+
+            .my-work-reports-mobile {
+              display: flex !important;
+            }
+          }
+
+          @media (max-width: 700px) {
+            .hr-work-report-mobile {
+              display: block;
+            }
+          }
+        `}
+      </style>
     </AppLayout>
   );
 }
 
+// =============================================================
+// STYLES
+// =============================================================
+
 const styles = {
-  container: {
-    padding: "0 0 2.5rem 0",
+  page: {
+    padding: "0 0 40px",
+    color: "#1d3027",
   },
-  header: {
-    marginBottom: "1.5rem",
-    paddingBottom: "1rem",
-    borderBottom: "1px solid var(--border-color)",
+
+  // -----------------------------------------------------------
+  // Navigation
+  // -----------------------------------------------------------
+
+  topNavigation: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginBottom: "20px",
     flexWrap: "wrap",
-    gap: "1rem",
   },
-  title: {
-    fontSize: "2rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
+
+  topActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
   },
-  subtitle: {
-    fontSize: "0.95rem",
-    color: "var(--text-secondary)",
-    marginTop: "0.25rem",
+
+  refreshButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "7px",
+    height: "38px",
+    padding: "0 12px",
+    borderRadius: "9px",
+    border: "1px solid #d2e1d8",
+    background: "#ffffff",
+    color: "#24543c",
+    fontSize: "11px",
+    fontWeight: "800",
   },
-  secondaryNavBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  primaryNavBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    fontWeight: "600",
+
+  submitButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "7px",
+    height: "38px",
+    padding: "0 14px",
+    borderRadius: "9px",
+    border: "1px solid #17613d",
+    background: "#17613d",
+    color: "#ffffff",
+    fontSize: "11px",
+    fontWeight: "800",
     textDecoration: "none",
-    cursor: "pointer",
+    boxShadow: "0 5px 12px rgba(23, 97, 61, 0.16)",
   },
-  filterCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1rem 1.25rem",
-    marginBottom: "1.5rem",
+
+  // -----------------------------------------------------------
+  // Hero
+  // -----------------------------------------------------------
+
+  hero: {
     display: "flex",
+    alignItems: "center",
     justifyContent: "space-between",
+    gap: "24px",
+    padding: "30px",
+    marginBottom: "16px",
+    borderRadius: "18px",
+    background:
+      "linear-gradient(135deg, #124d31 0%, #236c47 100%)",
+    boxShadow: "0 12px 30px rgba(18, 77, 49, 0.14)",
+    overflow: "hidden",
+  },
+
+  heroContent: {
+    minWidth: 0,
+    flex: 1,
+  },
+
+  eyebrow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+    color: "#d9f1e2",
+    fontSize: "10px",
+    fontWeight: "800",
+    letterSpacing: "0.13em",
+    marginBottom: "9px",
+  },
+
+  title: {
+    margin: 0,
+    color: "#ffffff",
+    fontSize: "clamp(1.75rem, 3vw, 2.4rem)",
+    fontWeight: "800",
+    lineHeight: 1.15,
+    letterSpacing: "-0.025em",
+  },
+
+  subtitle: {
+    maxWidth: "690px",
+    margin: "10px 0 0",
+    color: "#d6e9dd",
+    fontSize: "13px",
+    lineHeight: 1.65,
+  },
+
+  heroMeta: {
+    display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: "1rem",
+    gap: "8px",
+    marginTop: "17px",
   },
-  filterGroup: {
+
+  heroMetaItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#e0efe6",
+    fontSize: "10px",
+    fontWeight: "700",
+  },
+
+  heroDivider: {
+    color: "#86b99b",
+    fontSize: "10px",
+  },
+
+  heroSide: {
     display: "flex",
     alignItems: "center",
-    gap: "0.75rem",
+    gap: "12px",
+    minWidth: "175px",
+    padding: "15px",
+    borderRadius: "13px",
+    background: "rgba(255,255,255,0.09)",
+    border: "1px solid rgba(255,255,255,0.15)",
   },
+
+  heroIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.12)",
+    color: "#ffffff",
+    flexShrink: 0,
+  },
+
+  heroSideLabel: {
+    color: "#a7cdb5",
+    fontSize: "8px",
+    fontWeight: "800",
+    letterSpacing: "0.12em",
+  },
+
+  heroSideValue: {
+    marginTop: "2px",
+    color: "#ffffff",
+    fontSize: "21px",
+    fontWeight: "800",
+  },
+
+  heroSideText: {
+    color: "#c1ddcb",
+    fontSize: "9px",
+  },
+
+  // -----------------------------------------------------------
+  // Stats
+  // -----------------------------------------------------------
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
+    gap: "11px",
+    marginBottom: "16px",
+  },
+
+  statCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    padding: "16px",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "13px",
+    boxShadow: "0 4px 14px rgba(18, 77, 49, 0.035)",
+  },
+
+  statCardWarning: {
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    padding: "16px",
+    background: "#fffdf7",
+    border: "1px solid #eadfbe",
+    borderRadius: "13px",
+    boxShadow: "0 4px 14px rgba(120, 90, 20, 0.035)",
+  },
+
+  statIcon: {
+    width: "39px",
+    height: "39px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#e7f3eb",
+    color: "#17613d",
+    flexShrink: 0,
+  },
+
+  statIconWarning: {
+    width: "39px",
+    height: "39px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f9efd5",
+    color: "#80611e",
+    flexShrink: 0,
+  },
+
+  statLabel: {
+    color: "#75837b",
+    fontSize: "10px",
+    fontWeight: "700",
+    marginBottom: "3px",
+  },
+
+  statValue: {
+    color: "#1d3027",
+    fontSize: "20px",
+    fontWeight: "800",
+  },
+
+  // -----------------------------------------------------------
+  // Filter
+  // -----------------------------------------------------------
+
+  filterCard: {
+    marginBottom: "18px",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "15px",
+    overflow: "hidden",
+    boxShadow: "0 5px 18px rgba(18, 77, 49, 0.035)",
+  },
+
+  filterHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "15px",
+    padding: "19px 20px",
+    borderBottom: "1px solid #e5eee8",
+    flexWrap: "wrap",
+  },
+
+  sectionEyebrow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#347452",
+    fontSize: "9px",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+    marginBottom: "5px",
+  },
+
+  sectionTitle: {
+    margin: 0,
+    color: "#21362b",
+    fontSize: "16px",
+    fontWeight: "800",
+  },
+
+  sectionDescription: {
+    margin: "4px 0 0",
+    color: "#7b8881",
+    fontSize: "11px",
+    lineHeight: 1.5,
+  },
+
+  clearButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "7px 10px",
+    borderRadius: "8px",
+    border: "1px solid #d5e2da",
+    background: "#f8fbf9",
+    color: "#315d47",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  filterBody: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: "15px",
+    padding: "17px 20px",
+    flexWrap: "wrap",
+  },
+
+  filterField: {
+    flex: "1 1 300px",
+    maxWidth: "500px",
+  },
+
   filterLabel: {
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    color: "var(--text-secondary)",
+    display: "block",
+    marginBottom: "6px",
+    color: "#52635a",
+    fontSize: "10px",
+    fontWeight: "800",
   },
+
+  selectWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  selectIcon: {
+    position: "absolute",
+    left: "11px",
+    color: "#708078",
+    pointerEvents: "none",
+    zIndex: 1,
+  },
+
   select: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    padding: "0.5rem 0.75rem",
-    fontSize: "0.875rem",
+    width: "100%",
+    height: "40px",
+    boxSizing: "border-box",
+    padding: "0 12px 0 34px",
+    border: "1px solid #d4e1d9",
+    borderRadius: "9px",
+    background: "#fbfdfc",
+    color: "#24382e",
+    fontSize: "11px",
     outline: "none",
   },
-  summaryBadge: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
+
+  filterSummary: {
+    minWidth: "120px",
+    padding: "9px 13px",
+    borderRadius: "9px",
+    background: "#f3f8f5",
+    border: "1px solid #dce8df",
+    textAlign: "right",
   },
-  tableWrapper: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
+
+  filterSummaryLabel: {
+    display: "block",
+    color: "#7b8981",
+    fontSize: "8px",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+  },
+
+  filterSummaryValue: {
+    display: "block",
+    marginTop: "2px",
+    color: "#17613d",
+    fontSize: "17px",
+    fontWeight: "800",
+  },
+
+  // -----------------------------------------------------------
+  // Report Section
+  // -----------------------------------------------------------
+
+  reportSection: {
+    marginTop: "2px",
+  },
+
+  reportHeader: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginBottom: "10px",
+    flexWrap: "wrap",
+  },
+
+  pageBadge: {
+    padding: "6px 9px",
+    borderRadius: "8px",
+    background: "#f3f8f5",
+    border: "1px solid #dce7df",
+    color: "#607068",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  loadingCard: {
+    minHeight: "270px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "15px",
+  },
+
+  loadingIcon: {
+    width: "46px",
+    height: "46px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "13px",
+    background: "#e7f3eb",
+    color: "#17613d",
+    animation: "spin 1.2s linear infinite",
+  },
+
+  loadingTitle: {
+    margin: "12px 0 4px",
+    color: "#25382e",
+    fontSize: "14px",
+    fontWeight: "800",
+  },
+
+  loadingText: {
+    margin: 0,
+    color: "#7c8982",
+    fontSize: "11px",
+  },
+
+  emptyCard: {
+    minHeight: "270px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "30px 20px",
+    textAlign: "center",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "15px",
+  },
+
+  emptyIcon: {
+    width: "57px",
+    height: "57px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "15px",
+    background: "#eaf4ed",
+    color: "#347452",
+  },
+
+  emptyTitle: {
+    margin: "12px 0 5px",
+    color: "#26392f",
+    fontSize: "15px",
+    fontWeight: "800",
+  },
+
+  emptySubtitle: {
+    maxWidth: "430px",
+    margin: 0,
+    color: "#7b8881",
+    fontSize: "11px",
+    lineHeight: 1.55,
+  },
+
+  emptyPrimaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    marginTop: "14px",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    background: "#17613d",
+    border: "1px solid #17613d",
+    color: "#ffffff",
+    fontSize: "10px",
+    fontWeight: "800",
+    textDecoration: "none",
+  },
+
+  emptySecondaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    marginTop: "14px",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    background: "#f7faf8",
+    border: "1px solid #cfe0d5",
+    color: "#315d47",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  // -----------------------------------------------------------
+  // Table
+  // -----------------------------------------------------------
+
+  tableCard: {
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "15px",
+    overflow: "hidden",
+    boxShadow: "0 5px 18px rgba(18, 77, 49, 0.035)",
+  },
+
+  tableScroll: {
+    width: "100%",
     overflowX: "auto",
-    maxWidth: "100%",
   },
+
   table: {
     width: "100%",
+    minWidth: "930px",
     borderCollapse: "collapse",
     textAlign: "left",
-    fontSize: "0.9rem",
+    fontSize: "11px",
   },
-  th: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    padding: "0.875rem 1rem",
-    fontWeight: "600",
-    fontSize: "0.8rem",
+
+  tableHead: {
+    padding: "12px 13px",
+    background: "#f3f8f5",
+    borderBottom: "1px solid #dfe9e2",
+    color: "#5c6d64",
+    fontSize: "9px",
+    fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    borderBottom: "1px solid var(--border-color)",
+    letterSpacing: "0.07em",
+    whiteSpace: "nowrap",
   },
-  tr: {
-    borderBottom: "1px solid var(--border-color)",
+
+  tableRow: {
+    borderBottom: "1px solid #edf2ee",
   },
-  td: {
-    padding: "0.875rem 1rem",
-    color: "var(--text-primary)",
+
+  tableCell: {
+    padding: "13px",
+    color: "#35483e",
+    verticalAlign: "middle",
   },
-  subText: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
+
+  dateCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    minWidth: "145px",
   },
+
+  dateIcon: {
+    width: "31px",
+    height: "31px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    background: "#eaf4ed",
+    color: "#347452",
+    flexShrink: 0,
+  },
+
+  dateValue: {
+    color: "#26392f",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  dateLabel: {
+    marginTop: "2px",
+    color: "#8a9690",
+    fontSize: "8px",
+  },
+
+  projectCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    minWidth: "160px",
+  },
+
+  projectIcon: {
+    width: "31px",
+    height: "31px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    background: "#f0f5f2",
+    color: "#397254",
+    flexShrink: 0,
+  },
+
+  projectName: {
+    color: "#2b4035",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  projectCode: {
+    marginTop: "2px",
+    color: "#86928b",
+    fontSize: "8px",
+  },
+
+  descriptionWrapper: {
+    maxWidth: "300px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: "6px",
+  },
+
   descriptionSnippet: {
+    color: "#4b5c53",
+    lineHeight: 1.5,
     overflow: "hidden",
     textOverflow: "ellipsis",
     display: "-webkit-box",
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",
-    lineHeight: "1.4",
   },
+
   blockerBadge: {
-    display: "inline-block",
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
-    color: "var(--danger-color)",
-    fontSize: "0.7rem",
-    fontWeight: "700",
-    padding: "0.1rem 0.4rem",
-    borderRadius: "var(--radius-sm)",
-    marginTop: "0.25rem",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "4px 7px",
+    borderRadius: "6px",
+    background: "#fff6df",
+    border: "1px solid #ead9aa",
+    color: "#80611e",
+    fontSize: "8px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
   },
+
   attachmentLink: {
-    color: "var(--primary-color)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
+    maxWidth: "175px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#17613d",
+    fontSize: "9px",
+    fontWeight: "800",
     textDecoration: "none",
+  },
+
+  noAttachment: {
+    color: "#9aa59f",
+    fontSize: "9px",
+  },
+
+  viewButton: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.25rem",
-  },
-  viewBtn: {
-    backgroundColor: "transparent",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.35rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8rem",
-    fontWeight: "600",
+    justifyContent: "center",
+    gap: "5px",
+    padding: "7px 10px",
+    borderRadius: "8px",
+    border: "1px solid #cfe0d5",
+    background: "#f7faf8",
+    color: "#17613d",
+    fontSize: "9px",
+    fontWeight: "800",
     cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.3rem",
+    whiteSpace: "nowrap",
   },
-  emptyState: {
-    padding: "3rem",
-    textAlign: "center",
-    color: "var(--text-muted)",
-  },
-  emptyCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "3.5rem 1.5rem",
-    textAlign: "center",
-  },
-  emptyTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: "0 0 0.375rem 0",
-  },
-  emptySubtitle: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
-    margin: 0,
-  },
-  mobileCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1rem 1.25rem",
-  },
-  mobileCardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.625rem",
-    marginBottom: "0.625rem",
-  },
-  mobileCardTitle: {
-    fontSize: "1rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-  },
-  mobileCardBody: {
+
+  // -----------------------------------------------------------
+  // Mobile
+  // -----------------------------------------------------------
+
+  mobileList: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.375rem",
+    gap: "10px",
   },
-  mobileDesc: {
-    fontSize: "0.875rem",
-    color: "var(--text-primary)",
-    margin: 0,
-    lineHeight: "1.4",
+
+  mobileCard: {
+    padding: "15px",
+    background: "#ffffff",
+    border: "1px solid #dfe9e2",
+    borderRadius: "14px",
+    boxShadow: "0 4px 13px rgba(18, 77, 49, 0.035)",
   },
-  mobileBlocker: {
-    fontSize: "0.8rem",
-    color: "var(--danger-color)",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    padding: "0.375rem 0.625rem",
-    borderRadius: "var(--radius-sm)",
-  },
-  paginationRow: {
+
+  mobileTop: {
     display: "flex",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: "10px",
+  },
+
+  mobileDate: {
+    display: "flex",
     alignItems: "center",
-    marginTop: "1.25rem",
-    padding: "0.5rem 0",
+    gap: "8px",
+    minWidth: 0,
   },
-  pageInfo: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
-  },
-  pageBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.375rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.25rem",
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
-    backdropFilter: "blur(4px)",
+
+  mobileDateIcon: {
+    width: "33px",
+    height: "33px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1100,
-    padding: "1rem",
+    borderRadius: "9px",
+    background: "#eaf4ed",
+    color: "#347452",
+    flexShrink: 0,
   },
+
+  mobileDateValue: {
+    color: "#26392f",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  mobileDateLabel: {
+    marginTop: "2px",
+    color: "#87938c",
+    fontSize: "8px",
+  },
+
+  mobileViewButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    flexShrink: 0,
+    padding: "7px 9px",
+    borderRadius: "8px",
+    border: "1px solid #cfe0d5",
+    background: "#f7faf8",
+    color: "#17613d",
+    fontSize: "9px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  mobileProject: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginTop: "13px",
+  },
+
+  mobileProjectIcon: {
+    width: "31px",
+    height: "31px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    background: "#f0f5f2",
+    color: "#397254",
+    flexShrink: 0,
+  },
+
+  mobileProjectName: {
+    color: "#2b4035",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  mobileProjectCode: {
+    marginTop: "2px",
+    color: "#86928b",
+    fontSize: "8px",
+  },
+
+  mobileDivider: {
+    height: "1px",
+    margin: "12px 0",
+    background: "#edf2ee",
+  },
+
+  mobileDescription: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  },
+
+  mobileLabel: {
+    color: "#718078",
+    fontSize: "8px",
+    fontWeight: "800",
+    letterSpacing: "0.08em",
+  },
+
+  mobileDescriptionText: {
+    margin: 0,
+    color: "#45574e",
+    fontSize: "11px",
+    lineHeight: 1.55,
+  },
+
+  mobileBlocker: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    marginTop: "11px",
+    padding: "10px",
+    borderRadius: "9px",
+    background: "#fff8e8",
+    border: "1px solid #ead9aa",
+    color: "#80611e",
+    fontSize: "10px",
+    lineHeight: 1.45,
+  },
+
+  mobileBlockerText: {
+    margin: "3px 0 0",
+    color: "#80611e",
+    fontSize: "10px",
+    lineHeight: 1.45,
+  },
+
+  mobileAttachment: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    marginTop: "10px",
+    color: "#17613d",
+    textDecoration: "none",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  // -----------------------------------------------------------
+  // Pagination
+  // -----------------------------------------------------------
+
+  pagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginTop: "12px",
+    padding: "12px 2px",
+    flexWrap: "wrap",
+  },
+
+  paginationInfo: {
+    color: "#68776f",
+    fontSize: "10px",
+  },
+
+  totalText: {
+    marginLeft: "4px",
+    color: "#9aa59f",
+  },
+
+  paginationActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+  },
+
+  paginationButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    padding: "7px 10px",
+    borderRadius: "8px",
+    border: "1px solid #d5e1d9",
+    background: "#ffffff",
+    color: "#345448",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  // -----------------------------------------------------------
+  // Modal
+  // -----------------------------------------------------------
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1100,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    background: "rgba(10, 28, 19, 0.63)",
+    backdropFilter: "blur(5px)",
+  },
+
   modal: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-xl)",
-    width: "min(92vw, 560px)",
+    width: "min(94vw, 620px)",
     maxHeight: "calc(100vh - 32px)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    boxShadow: "var(--shadow-overlay)",
+    background: "#ffffff",
+    border: "1px solid #dce7df",
+    borderRadius: "17px",
+    boxShadow: "0 25px 70px rgba(0, 0, 0, 0.22)",
   },
+
   modalHeader: {
-    padding: "1.25rem 1.5rem",
-    borderBottom: "1px solid var(--border-color)",
+    flexShrink: 0,
     display: "flex",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "var(--bg-surface-elevated)",
+    gap: "12px",
+    padding: "16px 18px",
+    background: "#f4f9f6",
+    borderBottom: "1px solid #dfe9e2",
   },
+
+  modalHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
+
+  modalIcon: {
+    width: "40px",
+    height: "40px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "11px",
+    background: "#dceee3",
+    color: "#17613d",
+    flexShrink: 0,
+  },
+
+  modalEyebrow: {
+    color: "#397254",
+    fontSize: "8px",
+    fontWeight: "800",
+    letterSpacing: "0.1em",
+    marginBottom: "3px",
+  },
+
   modalTitle: {
-    fontSize: "1.1rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
     margin: 0,
+    color: "#1e3027",
+    fontSize: "15px",
+    fontWeight: "800",
   },
+
   modalSub: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
+    marginTop: "3px",
+    color: "#7c8982",
+    fontSize: "9px",
   },
-  closeBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
-    cursor: "pointer",
-    padding: "0.375rem",
-  },
-  modalBody: {
-    padding: "1.5rem",
-    overflowY: "auto",
+
+  closeButton: {
+    width: "33px",
+    height: "33px",
     display: "flex",
-    flexDirection: "column",
-    gap: "1.25rem",
-  },
-  detailRow: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.375rem",
-  },
-  detailLabel: {
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    color: "var(--text-muted)",
-  },
-  detailValue: {
-    fontSize: "0.95rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-  },
-  detailTextContent: {
-    fontSize: "0.9rem",
-    color: "var(--text-primary)",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "0.875rem",
-    whiteSpace: "pre-wrap",
-    lineHeight: "1.5",
-  },
-  attachmentButton: {
-    display: "inline-flex",
     alignItems: "center",
-    gap: "0.375rem",
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 0.875rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.85rem",
-    fontWeight: "600",
-    textDecoration: "none",
+    justifyContent: "center",
+    flexShrink: 0,
+    border: "1px solid #d5e1d9",
+    borderRadius: "9px",
+    background: "#ffffff",
+    color: "#607168",
+    cursor: "pointer",
   },
+
+  modalBody: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    padding: "17px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "11px",
+  },
+
+  detailCard: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #dfe9e2",
+    background: "#fbfdfc",
+  },
+
+  detailCardHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#397254",
+    fontSize: "8px",
+    fontWeight: "800",
+    letterSpacing: "0.08em",
+  },
+
+  detailValue: {
+    marginTop: "7px",
+    color: "#26392f",
+    fontSize: "12px",
+    fontWeight: "800",
+    lineHeight: 1.4,
+  },
+
+  detailSubValue: {
+    marginTop: "2px",
+    color: "#87938c",
+    fontSize: "9px",
+  },
+
+  detailSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+
+  detailSectionTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#3d594a",
+    fontSize: "9px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  },
+
+  detailContent: {
+    padding: "11px",
+    borderRadius: "9px",
+    border: "1px solid #dfe9e2",
+    background: "#f8fbf9",
+    color: "#45574e",
+    fontSize: "11px",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+  },
+
+  problemContent: {
+    background: "#fff9eb",
+    border: "1px solid #ead9aa",
+    color: "#765b22",
+  },
+
+  documentButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    width: "fit-content",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    padding: "9px 11px",
+    borderRadius: "9px",
+    border: "1px solid #cfe0d5",
+    background: "#f5faf7",
+    color: "#17613d",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  noDocument: {
+    padding: "10px 11px",
+    borderRadius: "9px",
+    border: "1px dashed #d8e2dc",
+    background: "#fafcfb",
+    color: "#89958e",
+    fontSize: "10px",
+  },
+
   modalFooter: {
-    padding: "1rem 1.5rem",
-    borderTop: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface-elevated)",
+    flexShrink: 0,
     display: "flex",
     justifyContent: "flex-end",
+    padding: "11px 17px",
+    borderTop: "1px solid #dfe9e2",
+    background: "#f8fbf9",
   },
-  secondaryBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
+
+  modalCloseButton: {
+    padding: "8px 15px",
+    borderRadius: "9px",
+    border: "1px solid #cfe0d5",
+    background: "#ffffff",
+    color: "#315c46",
+    fontSize: "10px",
+    fontWeight: "800",
     cursor: "pointer",
   },
 };

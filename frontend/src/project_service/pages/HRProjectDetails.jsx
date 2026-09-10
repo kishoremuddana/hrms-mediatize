@@ -6,14 +6,20 @@ import {
   UserPlus,
   Edit,
   UserX,
-  UserRound,
+  Users,
   CheckCircle2,
   AlertCircle,
-  Sliders,
+  Save,
+  ArrowLeft,
+  BriefcaseBusiness,
+  Target,
+  CircleDot,
 } from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import BackToDashboard from "../../shared/components/BackToDashboard";
 import { ConfirmDialog } from "../../shared/components/Modal";
+
 import {
   getProjectById,
   getProjectTeam,
@@ -21,9 +27,331 @@ import {
   updateProjectProgress,
   removeEmployee,
 } from "../services/projectApi";
-import { ProjectStatusBadge, ProjectPriorityBadge, ProjectProgress } from "../components/ProjectBadges";
+
+import {
+  ProjectStatusBadge,
+  ProjectPriorityBadge,
+  ProjectProgress,
+} from "../components/ProjectBadges";
+
 import AssignEmployeeModal from "../components/AssignEmployeeModal";
 import { showSuccess, showError } from "../../shared/utils/toast";
+
+
+/* =========================================================
+   SMALL COMPONENTS
+========================================================= */
+
+function InfoItem({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-xl bg-[#e8f2ec] text-[#2f6b4f] flex items-center justify-center shrink-0">
+        <Icon size={17} />
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-[0.12em] font-bold text-slate-400">
+          {label}
+        </p>
+
+        <p className="text-sm font-semibold text-slate-800 mt-1 break-words">
+          {value || "—"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+function TeamMemberCard({ member, onRemove }) {
+  const isActive = member.assignment_status === "ACTIVE";
+
+  return (
+    <div
+      className="
+        group relative
+        bg-white
+        border border-slate-200
+        rounded-2xl
+        p-5
+        hover:border-[#c4d9ca]
+        hover:shadow-[0_12px_30px_rgba(23,37,31,0.07)]
+        transition-all duration-200
+      "
+    >
+      {/* Top */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          {member.profile_photo_url ? (
+            <img
+              src={member.profile_photo_url}
+              alt={member.employee_name}
+              className="
+                w-12 h-12
+                rounded-2xl
+                object-cover
+                border border-slate-200
+                shrink-0
+              "
+            />
+          ) : (
+            <div
+              className="
+                w-12 h-12
+                rounded-2xl
+                bg-[#e8f2ec]
+                text-[#2f6b4f]
+                flex items-center justify-center
+                font-extrabold
+                text-lg
+                shrink-0
+              "
+            >
+              {member.employee_name?.[0]?.toUpperCase() || "E"}
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <h3 className="font-bold text-slate-900 truncate">
+              {member.employee_name}
+            </h3>
+
+            <p className="text-xs text-[#2f6b4f] font-semibold mt-1">
+              {member.employee_code}
+            </p>
+          </div>
+        </div>
+
+        {isActive ? (
+          <span
+            className="
+              inline-flex items-center gap-1.5
+              px-2.5 py-1
+              rounded-full
+              bg-[#e8f2ec]
+              text-[#2f6b4f]
+              text-[10px]
+              font-extrabold
+              uppercase
+              shrink-0
+            "
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4d8b65]" />
+            Active
+          </span>
+        ) : (
+          <span
+            className="
+              px-2.5 py-1
+              rounded-full
+              bg-slate-100
+              text-slate-400
+              text-[10px]
+              font-extrabold
+              uppercase
+            "
+          >
+            Removed
+          </span>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="mt-5 grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-wide font-bold text-slate-400">
+            Project Role
+          </p>
+
+          <span
+            className="
+              inline-flex
+              mt-1.5
+              px-2.5 py-1.5
+              rounded-lg
+              bg-[#f1f7f3]
+              text-[#2f6b4f]
+              text-xs
+              font-bold
+              border border-[#dce9df]
+            "
+          >
+            {member.project_role_name || "Team Member"}
+          </span>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase tracking-wide font-bold text-slate-400">
+            Assigned
+          </p>
+
+          <p className="text-sm font-semibold text-slate-700 mt-2">
+            {member.assigned_date || "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Removed date */}
+      {!isActive && member.removed_date && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <p className="text-xs text-slate-400">
+            Removed on{" "}
+            <span className="font-semibold text-slate-600">
+              {member.removed_date}
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* Action */}
+      {isActive && (
+        <button
+          onClick={() => onRemove(member)}
+          className="
+            w-full
+            mt-5
+            inline-flex items-center justify-center gap-2
+            px-4 py-2.5
+            rounded-xl
+            bg-red-50
+            border border-red-100
+            text-red-600
+            text-xs
+            font-bold
+            hover:bg-red-100
+            transition
+          "
+        >
+          <UserX size={14} />
+          Remove from Project
+        </button>
+      )}
+    </div>
+  );
+}
+
+
+/* =========================================================
+   STATUS WORKFLOW
+========================================================= */
+
+function StatusWorkflow({
+  currentStatus,
+  updatingStatus,
+  onStatusChange,
+}) {
+  const statuses = [
+    {
+      value: "PLANNED",
+      label: "Planned",
+      description: "Not started",
+    },
+    {
+      value: "IN_PROGRESS",
+      label: "In Progress",
+      description: "Currently active",
+    },
+    {
+      value: "ON_HOLD",
+      label: "On Hold",
+      description: "Temporarily paused",
+    },
+    {
+      value: "COMPLETED",
+      label: "Completed",
+      description: "Successfully finished",
+    },
+    {
+      value: "CANCELLED",
+      label: "Cancelled",
+      description: "Project stopped",
+    },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {statuses.map((status) => {
+        const active = currentStatus === status.value;
+
+        return (
+          <button
+            key={status.value}
+            disabled={active || updatingStatus}
+            onClick={() => onStatusChange(status.value)}
+            className={`
+              w-full
+              flex items-center gap-3
+              p-3
+              rounded-xl
+              border
+              text-left
+              transition-all
+              ${
+                active
+                  ? "bg-[#e8f2ec] border-[#bcd4c4]"
+                  : "bg-white border-slate-200 hover:border-[#c7dace] hover:bg-[#f8fbf9]"
+              }
+              ${
+                updatingStatus
+                  ? "opacity-60 cursor-not-allowed"
+                  : ""
+              }
+            `}
+          >
+            <div
+              className={`
+                w-8 h-8 rounded-lg
+                flex items-center justify-center
+                shrink-0
+                ${
+                  active
+                    ? "bg-[#2f6b4f] text-white"
+                    : "bg-slate-100 text-slate-400"
+                }
+              `}
+            >
+              {active ? (
+                <CheckCircle2 size={16} />
+              ) : (
+                <CircleDot size={16} />
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <p
+                className={`
+                  text-xs font-bold
+                  ${
+                    active
+                      ? "text-[#2f6b4f]"
+                      : "text-slate-700"
+                  }
+                `}
+              >
+                {status.label}
+              </p>
+
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {status.description}
+              </p>
+            </div>
+
+            {active && (
+              <span className="ml-auto text-[10px] font-extrabold text-[#2f6b4f] uppercase">
+                Current
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
 
 export default function HRProjectDetails() {
   const { id } = useParams();
@@ -38,726 +366,1185 @@ export default function HRProjectDetails() {
   const [removing, setRemoving] = useState(false);
 
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
   const [editingProgress, setEditingProgress] = useState(false);
   const [progressVal, setProgressVal] = useState(0);
+  const [savingProgress, setSavingProgress] = useState(false);
+
+
+  /* =====================================================
+     LOAD PROJECT
+  ===================================================== */
 
   const loadProjectData = async () => {
     setLoading(true);
+
     try {
-      const [pRes, tRes] = await Promise.all([getProjectById(id), getProjectTeam(id)]);
+      const [pRes, tRes] = await Promise.all([
+        getProjectById(id),
+        getProjectTeam(id),
+      ]);
+
       setProject(pRes.data);
       setProgressVal(pRes.data.progress_percentage || 0);
       setTeam(tRes.data || []);
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to load project details.");
+      showError(
+        err.response?.data?.detail ||
+          "Failed to load project details."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
     loadProjectData();
   }, [id]);
 
+
+  /* =====================================================
+     STATUS UPDATE
+  ===================================================== */
+
   const handleStatusChange = async (newStatus) => {
     setUpdatingStatus(true);
+
     try {
       const res = await updateProjectStatus(id, newStatus);
+
       setProject(res.data);
-      showSuccess(`Project status updated to ${newStatus}`);
+
+      showSuccess(
+        `Project status updated to ${newStatus.replace(
+          "_",
+          " "
+        )}`
+      );
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to update status.");
+      showError(
+        err.response?.data?.detail ||
+          "Failed to update status."
+      );
     } finally {
       setUpdatingStatus(false);
     }
   };
 
+
+  /* =====================================================
+     PROGRESS SAVE
+  ===================================================== */
+
   const handleProgressSave = async () => {
+    setSavingProgress(true);
+
     try {
-      const res = await updateProjectProgress(id, progressVal);
+      const res = await updateProjectProgress(
+        id,
+        progressVal
+      );
+
       setProject(res.data);
       setEditingProgress(false);
-      showSuccess("Project progress updated successfully!");
+
+      showSuccess(
+        "Project progress updated successfully!"
+      );
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to update progress.");
+      showError(
+        err.response?.data?.detail ||
+          "Failed to update progress."
+      );
+    } finally {
+      setSavingProgress(false);
     }
   };
 
+
+  /* =====================================================
+     REMOVE EMPLOYEE
+  ===================================================== */
+
   const confirmRemoveEmployee = async () => {
     if (!removeTarget) return;
+
     setRemoving(true);
+
     try {
-      await removeEmployee(id, removeTarget.assignment_id);
-      showSuccess(`Removed ${removeTarget.employee_name} from project.`);
+      await removeEmployee(
+        id,
+        removeTarget.assignment_id
+      );
+
+      showSuccess(
+        `Removed ${removeTarget.employee_name} from project.`
+      );
+
       setRemoveTarget(null);
-      loadProjectData();
+
+      await loadProjectData();
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to remove employee.");
+      showError(
+        err.response?.data?.detail ||
+          "Failed to remove employee."
+      );
     } finally {
       setRemoving(false);
     }
   };
 
+
+  const activeMembers = team.filter(
+    (member) =>
+      member.assignment_status === "ACTIVE"
+  ).length;
+
+
+  const progress = Math.min(
+    Math.max(project?.progress_percentage || 0, 0),
+    100
+  );
+
+
+  /* =====================================================
+     LOADING
+  ===================================================== */
+
+  if (loading) {
+    return (
+      <AppLayout title="Project Details">
+        <div className="min-h-[65vh] flex items-center justify-center">
+          <div className="text-center">
+            <div
+              className="
+                w-12 h-12
+                border-4
+                border-[#dce7df]
+                border-t-[#2f6b4f]
+                rounded-full
+                animate-spin
+                mx-auto
+                mb-4
+              "
+            />
+
+            <p className="text-sm font-semibold text-slate-500">
+              Loading project workspace...
+            </p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+
+  /* =====================================================
+     PROJECT NOT FOUND
+  ===================================================== */
+
+  if (!project) {
+    return (
+      <AppLayout title="Project Details">
+        <div className="max-w-2xl mx-auto py-16 px-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center shadow-sm">
+            <div
+              className="
+                w-16 h-16
+                rounded-2xl
+                bg-red-50
+                text-red-500
+                flex items-center justify-center
+                mx-auto
+              "
+            >
+              <AlertCircle size={28} />
+            </div>
+
+            <h2 className="text-xl font-bold text-slate-900 mt-5">
+              Project not found
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-2">
+              We couldn't load the requested project.
+            </p>
+
+            <button
+              onClick={() =>
+                navigate("/hr/projects/list")
+              }
+              className="
+                mt-6
+                inline-flex items-center gap-2
+                px-4 py-2.5
+                rounded-xl
+                bg-[#2f6b4f]
+                text-white
+                text-sm
+                font-bold
+                hover:bg-[#3b795b]
+                transition
+              "
+            >
+              <ArrowLeft size={15} />
+              Back to Projects
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+
+  /* =====================================================
+     UI
+  ===================================================== */
+
   return (
     <AppLayout title="Project Details">
-      <div style={styles.container}>
-        <BackToDashboard to="/hr/projects/list" role="HR" />
 
-        {loading || !project ? (
-          <div style={styles.loadingState}>Loading project information...</div>
-        ) : (
-          <>
-            {/* Header / Banner */}
-            <div style={styles.headerCard}>
-              <div style={styles.headerTop}>
-                <div>
-                  <div style={styles.codeRow}>
-                    <code style={styles.codeBadge}>{project.project_code}</code>
-                    <ProjectStatusBadge status={project.status} />
-                    <ProjectPriorityBadge priority={project.priority} />
-                    {project.is_overdue && <span style={styles.overduePill}>OVERDUE</span>}
-                  </div>
-                  <h1 style={styles.title}>{project.name}</h1>
-                </div>
+      <div className="w-full max-w-7xl mx-auto pb-12">
 
-                <div style={styles.headerButtons}>
-                  <button
-                    onClick={() => navigate(`/hr/projects/${id}/edit`)}
-                    style={styles.editBtn}
+        {/* =================================================
+            BACK
+        ================================================= */}
+
+        <div className="mb-5">
+          <BackToDashboard
+            to="/hr/projects/list"
+            role="HR"
+          />
+        </div>
+
+
+        {/* =================================================
+            PROJECT HEADER
+        ================================================= */}
+
+        <section
+          className="
+            relative
+            overflow-hidden
+            rounded-[28px]
+            bg-[#17251F]
+            text-white
+            shadow-[0_20px_50px_rgba(23,37,31,0.14)]
+            mb-6
+          "
+        >
+          {/* Decorative shapes */}
+
+          <div
+            className="
+              absolute
+              -right-24
+              -top-24
+              w-80
+              h-80
+              rounded-full
+              bg-[#2f6b4f]/20
+            "
+          />
+
+          <div
+            className="
+              absolute
+              right-20
+              -bottom-32
+              w-80
+              h-80
+              rounded-full
+              bg-[#6da27f]/10
+            "
+          />
+
+          <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+
+            {/* Header top */}
+
+            <div className="flex flex-col xl:flex-row xl:justify-between gap-7">
+
+              <div className="min-w-0">
+
+                {/* Code / Status */}
+
+                <div className="flex flex-wrap items-center gap-2 mb-5">
+
+                  <span
+                    className="
+                      px-3 py-1.5
+                      rounded-lg
+                      bg-white/10
+                      border border-white/10
+                      text-xs
+                      font-bold
+                    "
                   >
-                    <Edit size={16} /> Edit Project
-                  </button>
-                  <button
-                    onClick={() => setAssignModalOpen(true)}
-                    style={styles.assignBtn}
-                  >
-                    <UserPlus size={16} /> Assign Employee
-                  </button>
-                </div>
-              </div>
+                    {project.project_code}
+                  </span>
 
-              {/* Description */}
-              {project.description && (
-                <p style={styles.description}>{project.description}</p>
-              )}
+                  <ProjectStatusBadge
+                    status={project.status}
+                  />
 
-              {/* Metadata Grid */}
-              <div style={styles.metaGrid}>
-                <div style={styles.metaBox}>
-                  <Calendar size={18} style={{ color: "var(--primary-color)" }} />
-                  <div>
-                    <span style={styles.metaLabel}>Start Date</span>
-                    <span style={styles.metaVal}>{project.start_date}</span>
-                  </div>
-                </div>
+                  <ProjectPriorityBadge
+                    priority={project.priority}
+                  />
 
-                <div style={styles.metaBox}>
-                  <Clock size={18} style={{ color: "var(--primary-color)" }} />
-                  <div>
-                    <span style={styles.metaLabel}>End Date</span>
-                    <span style={styles.metaVal}>{project.end_date || "Ongoing"}</span>
-                  </div>
-                </div>
-
-                <div style={styles.metaBoxFull}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                    <span style={styles.metaLabel}>Overall Progress</span>
-                    <button
-                      onClick={() => setEditingProgress(!editingProgress)}
-                      style={styles.inlineEditBtn}
+                  {project.is_overdue && (
+                    <span
+                      className="
+                        inline-flex items-center gap-1.5
+                        px-3 py-1.5
+                        rounded-lg
+                        bg-red-500/15
+                        border border-red-400/20
+                        text-red-300
+                        text-xs
+                        font-bold
+                      "
                     >
-                      {editingProgress ? "Cancel" : "Adjust Progress"}
-                    </button>
-                  </div>
-
-                  {editingProgress ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={progressVal}
-                        onChange={(e) => setProgressVal(parseInt(e.target.value, 10))}
-                        style={{ flex: 1, accentColor: "var(--primary-color)" }}
-                      />
-                      <button onClick={handleProgressSave} style={styles.saveProgressBtn}>
-                        Save ({progressVal}%)
-                      </button>
-                    </div>
-                  ) : (
-                    <ProjectProgress percentage={project.progress_percentage} />
+                      <AlertCircle size={13} />
+                      OVERDUE
+                    </span>
                   )}
                 </div>
-              </div>
 
-              {/* Status Change Control Bar */}
-              <div style={styles.statusChangeBar}>
-                <span style={styles.statusChangeLabel}>Change Status:</span>
-                <div style={styles.statusButtonsGroup}>
-                  {["PLANNED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"].map((st) => (
-                    <button
-                      key={st}
-                      disabled={project.status === st || updatingStatus}
-                      onClick={() => handleStatusChange(st)}
-                      style={{
-                        ...styles.statusToggleBtn,
-                        backgroundColor:
-                          project.status === st
-                            ? "var(--primary-color)"
-                            : "var(--bg-surface-elevated)",
-                        color:
-                          project.status === st
-                            ? "var(--text-on-primary)"
-                            : "var(--text-primary)",
-                      }}
-                    >
-                      {st.replace("_", " ")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
 
-            {/* Team Roster Section */}
-            <div style={styles.teamSection}>
-              <div style={styles.teamHeader}>
-                <div>
-                  <h2 style={styles.sectionTitle}>Project Team ({team.filter((t) => t.assignment_status === "ACTIVE").length} active members)</h2>
-                  <p style={styles.subtitle}>Assigned team members and project roles</p>
+                <div className="flex items-center gap-2 text-[#a9c8b4] mb-2">
+                  <BriefcaseBusiness size={15} />
+
+                  <span className="text-xs font-bold uppercase tracking-[0.16em]">
+                    Project Workspace
+                  </span>
                 </div>
-                <button
-                  onClick={() => setAssignModalOpen(true)}
-                  style={styles.assignBtnSm}
+
+
+                <h1
+                  className="
+                    text-3xl
+                    sm:text-4xl
+                    lg:text-5xl
+                    font-extrabold
+                    tracking-tight
+                    break-words
+                  "
                 >
-                  <UserPlus size={15} /> Add Team Member
-                </button>
+                  {project.name}
+                </h1>
+
+
+                {project.description && (
+                  <p
+                    className="
+                      mt-4
+                      max-w-3xl
+                      text-sm
+                      sm:text-base
+                      leading-7
+                      text-slate-300
+                    "
+                  >
+                    {project.description}
+                  </p>
+                )}
               </div>
 
-              {team.length === 0 ? (
-                <div style={styles.emptyState}>No employees assigned to this project yet.</div>
-              ) : (
-                <>
-                  {/* DESKTOP TABLE VIEW */}
-                  <div className="employee-desktop-table" style={styles.tableWrapper}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>Employee</th>
-                          <th style={styles.th}>Project Role</th>
-                          <th style={styles.th}>Assigned Date</th>
-                          <th style={styles.th}>Status</th>
-                          <th style={styles.th}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {team.map((member) => (
-                          <tr key={member.assignment_id} style={styles.tr}>
-                            <td style={styles.td}>
-                              <div style={styles.empCell}>
-                                {member.profile_photo_url ? (
-                                  <img
-                                    src={member.profile_photo_url}
-                                    alt={member.employee_name}
-                                    style={styles.avatarImg}
-                                  />
-                                ) : (
-                                  <div style={styles.avatarPlaceholder}>
-                                    {member.employee_name?.[0]}
-                                  </div>
-                                )}
-                                <div>
-                                  <div style={styles.empName}>{member.employee_name}</div>
-                                  <code style={styles.codeBadgeSm}>{member.employee_code}</code>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={styles.td}>
-                              <span style={styles.projectRoleBadge}>
-                                {member.project_role_name}
-                              </span>
-                            </td>
-                            <td style={styles.td}>{member.assigned_date}</td>
-                            <td style={styles.td}>
-                              {member.assignment_status === "ACTIVE" ? (
-                                <span style={styles.activeTag}>ACTIVE</span>
-                              ) : (
-                                <span style={styles.removedTag}>
-                                  REMOVED ({member.removed_date})
-                                </span>
-                              )}
-                            </td>
-                            <td style={styles.td}>
-                              {member.assignment_status === "ACTIVE" && (
-                                <button
-                                  onClick={() => setRemoveTarget(member)}
-                                  style={styles.removeBtn}
-                                  title="Remove from project"
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
 
-                  {/* MOBILE CARDS VIEW */}
-                  <div className="employee-mobile-cards">
-                    {team.map((member) => (
-                      <div key={member.assignment_id} style={styles.teamCardMobile}>
-                        <div style={styles.teamCardMobileHeader}>
-                          <div style={styles.empCell}>
-                            {member.profile_photo_url ? (
-                              <img src={member.profile_photo_url} alt={member.employee_name} style={styles.avatarImg} />
-                            ) : (
-                              <div style={styles.avatarPlaceholder}>{member.employee_name?.[0]}</div>
-                            )}
-                            <div>
-                              <div style={styles.empName}>{member.employee_name}</div>
-                              <code style={styles.codeBadgeSm}>{member.employee_code}</code>
-                            </div>
-                          </div>
-                          <div>
-                            {member.assignment_status === "ACTIVE" ? (
-                              <span style={styles.activeTag}>ACTIVE</span>
-                            ) : (
-                              <span style={styles.removedTag}>REMOVED</span>
-                            )}
-                          </div>
-                        </div>
+              {/* Actions */}
 
-                        <div style={styles.teamCardMobileBody}>
-                          <div style={styles.fieldBlock}>
-                            <span style={styles.fieldLabel}>Project Role</span>
-                            <span style={styles.projectRoleBadge}>{member.project_role_name}</span>
-                          </div>
-                          <div style={styles.fieldBlock}>
-                            <span style={styles.fieldLabel}>Assigned Date</span>
-                            <span style={styles.fieldVal}>{member.assigned_date}</span>
-                          </div>
-                        </div>
+              <div className="flex flex-wrap gap-3 shrink-0">
 
-                        {member.assignment_status === "ACTIVE" && (
-                          <button
-                            onClick={() => setRemoveTarget(member)}
-                            style={styles.removeBtnMobile}
-                          >
-                            <UserX size={14} /> Remove Employee from Project
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+                <button
+                  onClick={() =>
+                    navigate(
+                      `/hr/projects/${id}/edit`
+                    )
+                  }
+                  className="
+                    inline-flex items-center justify-center gap-2
+                    px-4 py-2.5
+                    rounded-xl
+                    bg-white/10
+                    border border-white/10
+                    text-sm
+                    font-semibold
+                    hover:bg-white/15
+                    transition
+                  "
+                >
+                  <Edit size={16} />
+                  Edit Project
+                </button>
+
+
+                <button
+                  onClick={() =>
+                    setAssignModalOpen(true)
+                  }
+                  className="
+                    inline-flex items-center justify-center gap-2
+                    px-4 py-2.5
+                    rounded-xl
+                    bg-[#2f6b4f]
+                    text-white
+                    text-sm
+                    font-bold
+                    shadow-lg
+                    hover:bg-[#3b795b]
+                    transition
+                  "
+                >
+                  <UserPlus size={16} />
+                  Assign Employee
+                </button>
+
+              </div>
             </div>
 
-            {/* Modal & Confirm Dialog */}
-            <AssignEmployeeModal
-              isOpen={assignModalOpen}
-              onClose={() => setAssignModalOpen(false)}
-              projectId={id}
-              onAssignmentSuccess={loadProjectData}
-            />
 
-            <ConfirmDialog
-              isOpen={Boolean(removeTarget)}
-              onClose={() => setRemoveTarget(null)}
-              onConfirm={confirmRemoveEmployee}
-              title="Remove Employee from Project"
-              message={`Are you sure you want to remove ${removeTarget?.employee_name} from project '${project.name}'?`}
-              confirmText="Remove Employee"
-              confirmVariant="danger"
-              loading={removing}
-            />
-          </>
-        )}
+            {/* =================================================
+                SNAPSHOT
+            ================================================= */}
+
+            <div
+              className="
+                grid
+                grid-cols-1
+                sm:grid-cols-2
+                lg:grid-cols-4
+                gap-3
+                mt-9
+              "
+            >
+
+              {/* Progress */}
+
+              <div
+                className="
+                  rounded-2xl
+                  bg-white/[0.06]
+                  border border-white/[0.08]
+                  p-4
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">
+                    Progress
+                  </p>
+
+                  <Target
+                    size={16}
+                    className="text-[#a9c8b4]"
+                  />
+                </div>
+
+                <p className="text-3xl font-extrabold mt-2">
+                  {progress}%
+                </p>
+              </div>
+
+
+              {/* Team */}
+
+              <div
+                className="
+                  rounded-2xl
+                  bg-white/[0.06]
+                  border border-white/[0.08]
+                  p-4
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">
+                    Active Team
+                  </p>
+
+                  <Users
+                    size={16}
+                    className="text-[#a9c8b4]"
+                  />
+                </div>
+
+                <p className="text-3xl font-extrabold mt-2">
+                  {activeMembers}
+                </p>
+              </div>
+
+
+              {/* Start */}
+
+              <div
+                className="
+                  rounded-2xl
+                  bg-white/[0.06]
+                  border border-white/[0.08]
+                  p-4
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">
+                    Start Date
+                  </p>
+
+                  <Calendar
+                    size={16}
+                    className="text-[#a9c8b4]"
+                  />
+                </div>
+
+                <p className="text-sm font-bold mt-3">
+                  {project.start_date || "—"}
+                </p>
+              </div>
+
+
+              {/* End */}
+
+              <div
+                className="
+                  rounded-2xl
+                  bg-white/[0.06]
+                  border border-white/[0.08]
+                  p-4
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">
+                    End Date
+                  </p>
+
+                  <Clock
+                    size={16}
+                    className="text-[#a9c8b4]"
+                  />
+                </div>
+
+                <p className="text-sm font-bold mt-3">
+                  {project.end_date || "Ongoing"}
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+
+        {/* =================================================
+            MAIN WORKSPACE
+        ================================================= */}
+
+        <div
+          className="
+            grid
+            grid-cols-1
+            xl:grid-cols-[1.35fr_0.85fr]
+            gap-6
+            mb-6
+          "
+        >
+
+          {/* =================================================
+              PROGRESS PANEL
+          ================================================= */}
+
+          <section
+            className="
+              bg-white
+              border border-slate-200
+              rounded-3xl
+              p-6
+              sm:p-7
+              shadow-sm
+            "
+          >
+
+            <div className="flex items-start justify-between gap-4">
+
+              <div>
+                <p
+                  className="
+                    text-xs
+                    uppercase
+                    tracking-[0.14em]
+                    text-[#2f6b4f]
+                    font-bold
+                  "
+                >
+                  Project Health
+                </p>
+
+                <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                  Project Progress
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-2">
+                  Track how much of the project has been completed.
+                </p>
+              </div>
+
+              <div
+                className="
+                  w-12 h-12
+                  rounded-2xl
+                  bg-[#e8f2ec]
+                  text-[#2f6b4f]
+                  flex items-center justify-center
+                  shrink-0
+                "
+              >
+                <Target size={22} />
+              </div>
+
+            </div>
+
+
+            {/* Progress visual */}
+
+            <div
+              className="
+                mt-7
+                rounded-2xl
+                bg-[#f7faf8]
+                border border-[#e3ece6]
+                p-5
+              "
+            >
+
+              <div className="flex items-end justify-between gap-4 mb-4">
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Completion
+                  </p>
+
+                  <p className="text-4xl font-extrabold text-[#2f6b4f] mt-1">
+                    {progress}%
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs text-slate-400">
+                    Current status
+                  </p>
+
+                  <p className="text-sm font-bold text-slate-700 mt-1">
+                    {project.status?.replace(
+                      "_",
+                      " "
+                    )}
+                  </p>
+                </div>
+
+              </div>
+
+
+              <div className="h-4 bg-slate-200 rounded-full overflow-hidden">
+
+                <div
+                  className="
+                    h-full
+                    rounded-full
+                    bg-[#2f6b4f]
+                    transition-all
+                    duration-500
+                  "
+                  style={{
+                    width: `${progress}%`,
+                  }}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* Adjustment */}
+
+            <div className="mt-6">
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Adjust completion
+                  </h3>
+
+                  <p className="text-xs text-slate-400 mt-1">
+                    Update the project's current completion percentage.
+                  </p>
+                </div>
+
+
+                <button
+                  onClick={() =>
+                    setEditingProgress(
+                      !editingProgress
+                    )
+                  }
+                  className="
+                    inline-flex items-center justify-center
+                    px-4 py-2
+                    rounded-xl
+                    bg-[#e8f2ec]
+                    text-[#2f6b4f]
+                    text-xs
+                    font-bold
+                    hover:bg-[#dcefe3]
+                    transition
+                  "
+                >
+                  {editingProgress
+                    ? "Cancel"
+                    : "Adjust Progress"}
+                </button>
+
+              </div>
+
+
+              {editingProgress && (
+                <div
+                  className="
+                    mt-4
+                    p-5
+                    rounded-2xl
+                    bg-slate-50
+                    border border-slate-200
+                  "
+                >
+
+                  <div className="flex flex-col gap-5">
+
+                    <div className="flex items-center gap-4">
+
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={progressVal}
+                        onChange={(e) =>
+                          setProgressVal(
+                            parseInt(
+                              e.target.value,
+                              10
+                            )
+                          )
+                        }
+                        className="
+                          flex-1
+                          accent-[#2f6b4f]
+                        "
+                      />
+
+                      <span
+                        className="
+                          min-w-[52px]
+                          text-center
+                          px-2 py-2
+                          rounded-lg
+                          bg-[#e8f2ec]
+                          text-[#2f6b4f]
+                          text-sm
+                          font-extrabold
+                        "
+                      >
+                        {progressVal}%
+                      </span>
+
+                    </div>
+
+
+                    <button
+                      onClick={
+                        handleProgressSave
+                      }
+                      disabled={savingProgress}
+                      className="
+                        self-start
+                        inline-flex items-center gap-2
+                        px-4 py-2.5
+                        rounded-xl
+                        bg-[#2f6b4f]
+                        text-white
+                        text-xs
+                        font-bold
+                        hover:bg-[#3b795b]
+                        transition
+                        disabled:opacity-60
+                      "
+                    >
+                      <Save size={14} />
+
+                      {savingProgress
+                        ? "Saving..."
+                        : "Save Progress"}
+                    </button>
+
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+          </section>
+
+
+          {/* =================================================
+              PROJECT INFORMATION
+          ================================================= */}
+
+          <section
+            className="
+              bg-white
+              border border-slate-200
+              rounded-3xl
+              p-6
+              sm:p-7
+              shadow-sm
+            "
+          >
+
+            <div className="mb-6">
+
+              <p
+                className="
+                  text-xs
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#2f6b4f]
+                  font-bold
+                "
+              >
+                Project Information
+              </p>
+
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                Project Details
+              </h2>
+
+            </div>
+
+
+            <div className="space-y-5">
+
+              <InfoItem
+                icon={Calendar}
+                label="Start Date"
+                value={project.start_date}
+              />
+
+              <InfoItem
+                icon={Clock}
+                label="End Date"
+                value={
+                  project.end_date || "Ongoing"
+                }
+              />
+
+              <InfoItem
+                icon={Target}
+                label="Priority"
+                value={project.priority}
+              />
+
+              <InfoItem
+                icon={CircleDot}
+                label="Current Status"
+                value={project.status?.replace(
+                  "_",
+                  " "
+                )}
+              />
+
+            </div>
+
+          </section>
+
+        </div>
+
+
+        {/* =================================================
+            STATUS WORKFLOW
+        ================================================= */}
+
+        <section
+          className="
+            bg-white
+            border border-slate-200
+            rounded-3xl
+            p-6
+            sm:p-7
+            shadow-sm
+            mb-6
+          "
+        >
+
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+
+            <div className="lg:max-w-sm">
+
+              <p
+                className="
+                  text-xs
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#2f6b4f]
+                  font-bold
+                "
+              >
+                Workflow
+              </p>
+
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                Project Status
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-2 leading-6">
+                Move the project through its current operational stage.
+              </p>
+
+            </div>
+
+
+            <div className="w-full lg:max-w-3xl">
+              <StatusWorkflow
+                currentStatus={project.status}
+                updatingStatus={updatingStatus}
+                onStatusChange={handleStatusChange}
+              />
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            TEAM
+        ================================================= */}
+
+        <section
+          className="
+            bg-slate-50
+            border border-slate-200
+            rounded-3xl
+            p-5
+            sm:p-7
+          "
+        >
+
+          {/* Team header */}
+
+          <div
+            className="
+              flex
+              flex-col
+              md:flex-row
+              md:items-center
+              md:justify-between
+              gap-5
+              mb-6
+            "
+          >
+
+            <div className="flex items-center gap-4">
+
+              <div
+                className="
+                  w-12 h-12
+                  rounded-2xl
+                  bg-[#2f6b4f]
+                  text-white
+                  flex items-center justify-center
+                  shadow-sm
+                "
+              >
+                <Users size={21} />
+              </div>
+
+              <div>
+
+                <p
+                  className="
+                    text-xs
+                    uppercase
+                    tracking-[0.14em]
+                    text-[#2f6b4f]
+                    font-bold
+                  "
+                >
+                  People
+                </p>
+
+                <h2 className="text-2xl font-extrabold text-slate-900">
+                  Project Team
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-1">
+                  {activeMembers} active{" "}
+                  {activeMembers === 1
+                    ? "member"
+                    : "members"}{" "}
+                  assigned
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <button
+              onClick={() =>
+                setAssignModalOpen(true)
+              }
+              className="
+                inline-flex
+                items-center
+                justify-center
+                gap-2
+                px-4
+                py-2.5
+                rounded-xl
+                bg-[#2f6b4f]
+                text-white
+                text-sm
+                font-bold
+                hover:bg-[#3b795b]
+                transition
+              "
+            >
+              <UserPlus size={16} />
+              Add Team Member
+            </button>
+
+          </div>
+
+
+          {/* No team */}
+
+          {team.length === 0 ? (
+            <div
+              className="
+                bg-white
+                border border-dashed
+                border-slate-300
+                rounded-3xl
+                p-12
+                text-center
+              "
+            >
+
+              <div
+                className="
+                  w-16 h-16
+                  rounded-2xl
+                  bg-[#e8f2ec]
+                  text-[#2f6b4f]
+                  flex items-center justify-center
+                  mx-auto
+                "
+              >
+                <Users size={27} />
+              </div>
+
+              <h3 className="mt-5 text-lg font-bold text-slate-900">
+                No team members yet
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+                Start building this project by assigning employees to the team.
+              </p>
+
+              <button
+                onClick={() =>
+                  setAssignModalOpen(true)
+                }
+                className="
+                  mt-6
+                  inline-flex
+                  items-center
+                  gap-2
+                  px-4
+                  py-2.5
+                  rounded-xl
+                  bg-[#2f6b4f]
+                  text-white
+                  text-sm
+                  font-bold
+                  hover:bg-[#3b795b]
+                  transition
+                "
+              >
+                <UserPlus size={15} />
+                Assign Employee
+              </button>
+
+            </div>
+          ) : (
+
+            /* Team cards */
+
+            <div
+              className="
+                grid
+                grid-cols-1
+                md:grid-cols-2
+                xl:grid-cols-3
+                gap-4
+              "
+            >
+
+              {team.map((member) => (
+                <TeamMemberCard
+                  key={member.assignment_id}
+                  member={member}
+                  onRemove={setRemoveTarget}
+                />
+              ))}
+
+            </div>
+
+          )}
+
+        </section>
+
+
+        {/* =================================================
+            MODALS
+        ================================================= */}
+
+        <AssignEmployeeModal
+          isOpen={assignModalOpen}
+          onClose={() =>
+            setAssignModalOpen(false)
+          }
+          projectId={id}
+          onAssignmentSuccess={
+            loadProjectData
+          }
+        />
+
+
+        <ConfirmDialog
+          isOpen={Boolean(removeTarget)}
+          onClose={() =>
+            setRemoveTarget(null)
+          }
+          onConfirm={
+            confirmRemoveEmployee
+          }
+          title="Remove Employee from Project"
+          message={`Are you sure you want to remove ${removeTarget?.employee_name} from project '${project.name}'?`}
+          confirmText="Remove Employee"
+          confirmVariant="danger"
+          loading={removing}
+        />
+
       </div>
+
     </AppLayout>
   );
 }
-
-const styles = {
-  container: {
-    padding: "0 0 2rem 0",
-    maxWidth: "100%",
-    minWidth: 0,
-    boxSizing: "border-box",
-  },
-  headerCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.75rem",
-    marginBottom: "2rem",
-    boxShadow: "var(--shadow-sm)",
-  },
-  headerTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    gap: "1rem",
-    marginBottom: "1rem",
-  },
-  codeRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    marginBottom: "0.5rem",
-    flexWrap: "wrap",
-  },
-  codeBadge: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    padding: "0.25rem 0.625rem",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--primary-color)",
-    fontFamily: "var(--font-mono)",
-    fontWeight: "700",
-    fontSize: "0.8125rem",
-  },
-  title: {
-    fontSize: "clamp(1.5rem, 4vw, 2.25rem)",
-    fontWeight: "800",
-    color: "var(--text-primary)",
-    margin: 0,
-    lineHeight: "1.2",
-  },
-  headerButtons: {
-    display: "flex",
-    gap: "0.75rem",
-    flexWrap: "wrap",
-  },
-  editBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.5rem",
-  },
-  assignBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.625rem 1.25rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.875rem",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.5rem",
-  },
-  description: {
-    fontSize: "0.9375rem",
-    color: "var(--text-secondary)",
-    lineHeight: "1.6",
-    marginBottom: "1.5rem",
-    borderTop: "1px solid var(--border-color)",
-    paddingTop: "1rem",
-  },
-  metaGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-  },
-  metaBox: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "0.875rem 1rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-  },
-  metaBoxFull: {
-    gridColumn: "1 / -1",
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    padding: "1rem",
-  },
-  metaLabel: {
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    color: "var(--text-muted)",
-    display: "block",
-  },
-  metaVal: {
-    fontSize: "0.9375rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-  },
-  inlineEditBtn: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "var(--primary-color)",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  saveProgressBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.35rem 0.75rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  statusChangeBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1rem",
-    borderTop: "1px solid var(--border-color)",
-    paddingTop: "1.25rem",
-    flexWrap: "wrap",
-  },
-  statusChangeLabel: {
-    fontSize: "0.875rem",
-    fontWeight: "700",
-    color: "var(--text-secondary)",
-  },
-  statusButtonsGroup: {
-    display: "flex",
-    gap: "0.5rem",
-    flexWrap: "wrap",
-  },
-  statusToggleBtn: {
-    border: "1px solid var(--border-color)",
-    padding: "0.4rem 0.875rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    cursor: "pointer",
-    transition: "all var(--transition-fast)",
-  },
-  teamSection: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.5rem",
-    boxShadow: "var(--shadow-sm)",
-  },
-  teamHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1.25rem",
-    flexWrap: "wrap",
-    gap: "1rem",
-  },
-  sectionTitle: {
-    fontSize: "1.25rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: "0.85rem",
-    color: "var(--text-secondary)",
-    marginTop: "0.2rem",
-  },
-  assignBtnSm: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8125rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.35rem",
-  },
-  tableWrapper: {
-    backgroundColor: "var(--bg-surface)",
-    borderRadius: "var(--radius-lg)",
-    overflowX: "auto",
-    width: "100%",
-    maxWidth: "100%",
-    border: "1px solid var(--border-color)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    textAlign: "left",
-  },
-  th: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--text-muted)",
-    padding: "0.875rem 1rem",
-    fontSize: "0.75rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    whiteSpace: "nowrap",
-  },
-  tr: {
-    borderBottom: "1px solid var(--border-color)",
-  },
-  td: {
-    padding: "0.875rem 1rem",
-    fontSize: "0.875rem",
-    color: "var(--text-primary)",
-  },
-  empCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-  },
-  avatarImg: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    objectFit: "cover",
-    flexShrink: 0,
-  },
-  avatarPlaceholder: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    backgroundColor: "var(--primary-color)",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "600",
-    fontSize: "0.875rem",
-    flexShrink: 0,
-  },
-  empName: {
-    fontWeight: "600",
-    color: "var(--text-primary)",
-  },
-  codeBadgeSm: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    padding: "0.15rem 0.4rem",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--primary-color)",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.7rem",
-  },
-  officialDesignationBadge: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    border: "1px solid var(--border-color)",
-    color: "var(--text-secondary)",
-    padding: "0.2rem 0.6rem",
-    borderRadius: "var(--radius-sm)",
-    fontSize: "0.8125rem",
-    fontWeight: "500",
-  },
-  projectRoleBadge: {
-    backgroundColor: "var(--primary-light, rgba(37, 99, 235, 0.12))",
-    color: "var(--primary-color)",
-    border: "1px solid rgba(37, 99, 235, 0.3)",
-    padding: "0.25rem 0.625rem",
-    borderRadius: "9999px",
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    display: "inline-block",
-  },
-  activeTag: {
-    color: "var(--success-color)",
-    fontWeight: "700",
-    fontSize: "0.75rem",
-  },
-  removedTag: {
-    color: "var(--text-muted)",
-    fontWeight: "600",
-    fontSize: "0.75rem",
-  },
-  removeBtn: {
-    backgroundColor: "var(--danger-bg)",
-    color: "var(--danger-color)",
-    border: "1px solid var(--danger-border)",
-    padding: "0.25rem 0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  teamCardMobile: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "1rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem",
-  },
-  teamCardMobileHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  teamCardMobileBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5rem",
-    borderTop: "1px solid var(--border-color)",
-    borderBottom: "1px solid var(--border-color)",
-    padding: "0.625rem 0",
-  },
-  fieldBlock: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.15rem",
-  },
-  fieldLabel: {
-    fontSize: "0.7rem",
-    fontWeight: "700",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-  },
-  fieldVal: {
-    fontSize: "0.875rem",
-    color: "var(--text-primary)",
-  },
-  removeBtnMobile: {
-    backgroundColor: "var(--danger-bg)",
-    color: "var(--danger-color)",
-    border: "1px solid var(--danger-border)",
-    padding: "0.5rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8125rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "0.35rem",
-  },
-  loadingState: {
-    textAlign: "center",
-    padding: "3rem",
-    color: "var(--text-muted)",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "3rem",
-    backgroundColor: "var(--bg-surface)",
-    borderRadius: "var(--radius-lg)",
-    color: "var(--text-muted)",
-  },
-  overduePill: {
-    backgroundColor: "var(--danger-bg)",
-    color: "var(--danger-color)",
-    fontSize: "0.7rem",
-    fontWeight: "800",
-    padding: "0.2rem 0.5rem",
-    borderRadius: "var(--radius-sm)",
-  },
-};

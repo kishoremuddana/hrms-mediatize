@@ -1,346 +1,249 @@
-/* HRMS Layout System - Production Enterprise Styling */
-
 :root {
   --sidebar-width: 260px;
-  --header-height: 64px;
+  --sidebar-collapsed-width: 76px;
+  --header-height: 68px;
+
+  --app-bg: #f6f7f4;
+  --border-color: #e5e7e2;
+  --text-primary: #1f2933;
+  --text-secondary: #7b857f;
+  --green-dark: #17251f;
+  --green: #2f6b4f;
 }
 
-.hrms-app-container {
-  display: flex;
-  min-height: 100vh;
-  background-color: var(--bg-app);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-}
-
-.hrms-app-container.collapsed {
-  --sidebar-width: 72px;
-}
 
 /* =========================================================
-   DESKTOP SIDEBAR (≥1024px)
+   GLOBAL BOX SIZING
    ========================================================= */
-.hrms-sidebar {
-  width: var(--sidebar-width);
-  background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 90;
-  transition: width 0.2s ease, transform var(--transition-normal);
+
+.hrms-app-container,
+.hrms-app-container *,
+.hrms-app-container *::before,
+.hrms-app-container *::after {
+  box-sizing: border-box;
 }
 
-.hrms-sidebar-brand {
+
+/* =========================================================
+   APP CONTAINER
+   ========================================================= */
+
+.hrms-app-container {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+
+  display: flex;
+
+  background: var(--app-bg);
+
+  overflow-x: hidden;
+}
+
+
+/* =========================================================
+   DESKTOP SIDEBAR
+   ========================================================= */
+
+.hrms-sidebar {
+  position: fixed !important;
+
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  width: var(--sidebar-width);
+
+  flex-shrink: 0;
+
+  z-index: 100;
+}
+
+
+/* =========================================================
+   MAIN APPLICATION WRAPPER
+   ========================================================= */
+
+.hrms-main-wrapper {
+  width: calc(100% - var(--sidebar-width));
+
+  margin-left: var(--sidebar-width);
+
+  min-width: 0;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow-x: hidden;
+
+  transition:
+    width 0.25s ease,
+    margin-left 0.25s ease;
+}
+
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+   ========================================================= */
+
+.hrms-app-container.collapsed .hrms-main-wrapper {
+  width: calc(100% - var(--sidebar-collapsed-width));
+
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.hrms-header {
+  width: calc(100% - var(--sidebar-width));
   height: var(--header-height);
+
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1rem;
+
+  padding: 0 1.5rem;
+
+  background: rgba(255, 255, 255, 0.97);
+
   border-bottom: 1px solid var(--border-color);
-  transition: padding 0.2s ease;
+
+  position: fixed;
+  top: 0;
+
+  z-index: 50;
+
+  overflow: visible;
+}
+.hrms-app-container.collapsed .hrms-header {
+  width: calc(100% - var(--sidebar-collapsed-width));
+  left: var(--sidebar-collapsed-width);
 }
 
-.hrms-brand-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+/* =========================================================
+   HEADER LEFT
+   ========================================================= */
+
+.hrms-header-left {
   min-width: 0;
-}
+  flex: 1;
 
-.hrms-brand-logo {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  color: #ffffff;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
 
-.hrms-brand-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-  white-space: nowrap;
+  gap: 0.875rem;
+
   overflow: hidden;
 }
 
-.hrms-sidebar-toggle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
-  color: var(--text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-}
-
-.hrms-sidebar-toggle-btn:hover {
-  background-color: var(--bg-surface-elevated);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
-.hrms-sidebar-toggle-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-.hrms-sidebar-nav {
-  flex: 1;
-  padding: 1.25rem 0.875rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  transition: padding 0.2s ease;
-}
-
-.hrms-nav-section-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  padding: 0.75rem 0.75rem 0.375rem 0.75rem;
-  white-space: nowrap;
-}
-
-.hrms-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all var(--transition-fast);
-}
-
-.hrms-nav-item:hover {
-  background-color: var(--bg-surface-elevated);
-  color: var(--text-primary);
-}
-
-.hrms-nav-item.active {
-  background-color: var(--primary-light);
-  color: var(--primary-color);
-  font-weight: 600;
-  border-left: 3px solid var(--primary-color);
-}
-
-.hrms-nav-icon {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  flex-shrink: 0;
-}
-
-.hrms-sidebar-footer {
-  padding: 1rem 0.875rem;
-  border-top: 1px solid var(--border-color);
-  transition: padding 0.2s ease;
-}
-
-.hrms-logout-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: 1px solid var(--danger-border);
-  color: var(--danger-color);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.hrms-logout-btn:hover {
-  background-color: var(--danger-bg);
-}
 
 /* =========================================================
-   COLLAPSED SIDEBAR OVERRIDES
+   PAGE TITLE
    ========================================================= */
-.hrms-sidebar.collapsed .hrms-sidebar-brand {
-  padding: 0 0.5rem;
-  justify-content: space-between;
-}
-
-.hrms-sidebar.collapsed .hrms-brand-logo {
-  width: 28px;
-  height: 28px;
-  font-size: 0.9rem;
-}
-
-.hrms-sidebar.collapsed .hrms-sidebar-toggle-btn {
-  width: 26px;
-  height: 26px;
-}
-
-.hrms-sidebar.collapsed .hrms-sidebar-nav {
-  padding: 1.25rem 0.4rem;
-  align-items: center;
-}
-
-.hrms-sidebar.collapsed .hrms-nav-item {
-  justify-content: center;
-  padding: 0.625rem 0;
-  width: 100%;
-  border-left: none;
-  gap: 0;
-}
-
-.hrms-sidebar.collapsed .hrms-nav-item.active {
-  border-left: none;
-  background-color: var(--primary-light);
-  color: var(--primary-color);
-  border-radius: var(--radius-md);
-}
-
-.hrms-sidebar.collapsed .hrms-nav-icon {
-  width: 20px;
-  margin: 0 auto;
-}
-
-.hrms-sidebar.collapsed .hrms-sidebar-footer {
-  padding: 1rem 0.4rem;
-  display: flex;
-  justify-content: center;
-}
-
-.hrms-sidebar.collapsed .hrms-logout-btn {
-  justify-content: center;
-  padding: 0.625rem 0;
-  width: 100%;
-  gap: 0;
-}
-
-/* =========================================================
-   MAIN WRAPPER & HEADER
-   ========================================================= */
-.hrms-main-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  width: calc(100% - var(--sidebar-width));
-  max-width: calc(100% - var(--sidebar-width));
-  margin-left: var(--sidebar-width);
-  transition: margin-left 0.2s ease, width 0.2s ease, max-width 0.2s ease;
-}
-
-.hrms-header {
-  height: var(--header-height);
-  background-color: var(--bg-header);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 80;
-  transition: background-color var(--transition-normal);
-}
-
-.hrms-header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.hrms-hamburger-btn {
-  display: none;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  transition: background-color var(--transition-fast);
-}
-
-.hrms-hamburger-btn:hover {
-  background-color: var(--bg-surface-elevated);
-}
 
 .hrms-page-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
   margin: 0;
-  max-width: 320px;
+
+  min-width: 0;
+  max-width: 100%;
+
+  font-size: 1.05rem;
+  font-weight: 700;
+
+  color: var(--text-primary);
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-@media (max-width: 480px) {
-  .hrms-page-title {
-    max-width: 140px;
-    font-size: 0.95rem;
-  }
-}
-
-.hrms-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-@media (max-width: 400px) {
-  .hrms-header-right {
-    gap: 0.5rem;
-  }
-}
 
 /* =========================================================
-   HEADER LIVE DATE & TIME WIDGET
+   HEADER RIGHT
    ========================================================= */
+
+.hrms-header-right {
+  min-width: 0;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.875rem;
+
+  overflow: visible;
+}
+
+
+/* =========================================================
+   HAMBURGER
+   ========================================================= */
+
+.hrms-hamburger-btn {
+  display: none;
+
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #dfe4df;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  color: #34443c;
+
+  cursor: pointer;
+
+  padding: 0;
+}
+
+.hrms-hamburger-btn:hover {
+  background: #f4f7f4;
+}
+
+.hrms-hamburger-btn:active {
+  transform: scale(0.97);
+}
+
+
+/* =========================================================
+   DATE / TIME
+   ========================================================= */
+
 .hrms-header-datetime {
+  min-width: 145px;
+
   display: flex;
   flex-direction: column;
+
   align-items: flex-end;
   justify-content: center;
-  line-height: 1.15;
-  padding: 0 0.75rem;
+
+  padding: 0 0.875rem;
+
   border-left: 1px solid var(--border-color);
   border-right: 1px solid var(--border-color);
+
+  line-height: 1.2;
 }
 
 .hrms-header-date {
-  font-size: 0.725rem;
+  font-size: 0.7rem;
   font-weight: 500;
+
   color: var(--text-secondary);
+
   white-space: nowrap;
 }
 
@@ -349,234 +252,343 @@
 }
 
 .hrms-header-time {
-  font-size: 0.85rem;
+  margin-top: 2px;
+
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+
+  color: #26352e;
+
   white-space: nowrap;
+
+  font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 1023px) {
-  .hrms-header-date.hrms-date-full {
-    display: none;
-  }
-  .hrms-header-date.hrms-date-short {
-    display: inline;
-  }
-}
 
-@media (max-width: 767px) {
-  .hrms-header-datetime {
-    display: none;
-  }
-}
+/* =========================================================
+   USER PROFILE
+   ========================================================= */
 
 .hrms-user-profile {
+  min-width: 0;
+  max-width: 220px;
+
   display: flex;
   align-items: center;
+
   gap: 0.625rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
+
+  padding: 0.3rem 0.65rem;
+
+  background: #f5f7f4;
+
+  border: 1px solid #e1e6e1;
+
+  border-radius: 999px;
+
+  overflow: hidden;
 }
 
 .hrms-user-info {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   line-height: 1.2;
+
+  overflow: hidden;
 }
 
 .hrms-user-name {
-  font-size: 0.8125rem;
+  max-width: 150px;
+
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-primary);
-  max-width: 140px;
+
+  color: #26352e;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .hrms-role-badge {
-  font-size: 0.65rem;
+  margin-top: 2px;
+
+  font-size: 0.62rem;
   font-weight: 700;
-  color: var(--primary-color);
+
+  color: var(--green);
+
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+
+  white-space: nowrap;
 }
+
+
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
 
 .hrms-main-content {
-  flex: 1;
-  padding: 1.5rem;
-  max-width: 1280px;
   width: 100%;
-  margin: 0 auto;
+  max-width: 100%;
+
+  min-width: 0;
+
+  flex: 1;
+
+  padding: 1.5rem;
+
+  padding-top: calc(1.5rem + var(--header-height));
+
+  overflow-x: hidden;
 }
+
 
 /* =========================================================
-   MOBILE NAVIGATION DRAWER (<1024px)
+   TABLET
+   768px - 1023px
    ========================================================= */
-.hrms-mobile-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-}
 
-.hrms-mobile-backdrop.open {
-  display: block;
-}
-
-.hrms-mobile-drawer {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 280px;
-  background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-color);
-  z-index: 110;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(-100%);
-  transition: transform var(--transition-normal);
-  box-shadow: var(--shadow-overlay);
-}
-
-.hrms-mobile-drawer.open {
-  transform: translateX(0);
-}
-
-.hrms-mobile-header {
-  height: var(--header-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.25rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.hrms-close-drawer-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 1.5rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0.25rem;
-}
-
-.hrms-close-drawer-btn:hover {
-  color: var(--text-primary);
-}
-
-/* =========================================================
-   RESPONSIVE BREAKPOINTS
-   ========================================================= */
 @media (max-width: 1023px) {
+
+  /* Hide desktop sidebar */
   .hrms-sidebar {
-    display: none;
+    display: none !important;
   }
-  .hrms-main-wrapper {
-    margin-left: 0;
-    width: 100%;
-    max-width: 100%;
+
+  /* Full-width application */
+  .hrms-main-wrapper,
+  .hrms-app-container.collapsed .hrms-main-wrapper {
+    width: 100% !important;
+
+    margin-left: 0 !important;
+
+    min-width: 0;
   }
+
+  /* Show mobile menu button */
   .hrms-hamburger-btn {
     display: flex;
   }
+
+  /* Tablet content */
   .hrms-main-content {
-    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+
+    padding: 1.25rem;
+
+    min-width: 0;
+  }
+
+  /* Short date on tablet */
+  .hrms-header-date.hrms-date-full {
+    display: none;
+  }
+
+  .hrms-header-date.hrms-date-short {
+    display: inline;
+  }
+
+  /* Slightly smaller header spacing */
+  .hrms-header {
+    padding: 0 1.25rem;
+    width: 100%;
+    left: 0;
+  }
+
+  .hrms-app-container.collapsed .hrms-header {
+    width: 100%;
+    left: 0;
+  }
+  .hrms-header-right {
+    gap: 0.625rem;
+  }
+
+  .hrms-header-datetime {
+    min-width: 125px;
+
+    padding: 0 0.625rem;
+  }
+
+  .hrms-user-profile {
+    max-width: 190px;
+  }
+
+  .hrms-user-name {
+    max-width: 120px;
   }
 }
 
-@media (max-width: 640px) {
-  .hrms-user-info,
-  .hrms-theme-text {
-    display: none !important;
+
+/* =========================================================
+   MOBILE
+   481px - 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  :root {
+    --header-height: 62px;
   }
+
   .hrms-header {
-    padding: 0 0.875rem;
-  }
-  .hrms-header-left {
+    height: var(--header-height);
+
+    padding: 0 1rem;
+
     gap: 0.5rem;
   }
+
+  .hrms-header-left {
+    gap: 0.625rem;
+  }
+
   .hrms-header-right {
     gap: 0.5rem;
   }
-}
 
-@media (max-width: 480px) {
-  .Toastify__toast-container {
-    width: calc(100vw - 1.5rem) !important;
-    left: 0.75rem !important;
-    right: 0.75rem !important;
-    margin: 0 !important;
-    top: 0.75rem !important;
+  /* Hide date/time */
+  .hrms-header-datetime {
+    display: none;
   }
-  .hrms-mobile-drawer {
-    width: 260px;
-    max-width: calc(100vw - 44px);
-  }
+
+  /* Main content */
   .hrms-main-content {
-    padding: 0.75rem 0.5rem;
+    width: 100%;
+    max-width: 100%;
+
+    padding: 1rem;
+    padding-top: calc(1rem + var(--header-height));
+  }
+
+  /* Page title */
+  .hrms-page-title {
+    font-size: 0.98rem;
+  }
+
+  /* User profile */
+  .hrms-user-profile {
+    max-width: 180px;
   }
 }
+
 
 /* =========================================================
-   EMPLOYEE DIRECTORY RESPONSIVE TOGGLE
+   SMALL MOBILE
+   <= 480px
    ========================================================= */
-.employee-desktop-table {
-  display: block;
-}
-.employee-mobile-cards {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .employee-desktop-table {
-    display: none !important;
-  }
-  .employee-mobile-cards {
-    display: flex !important;
-    flex-direction: column;
-    gap: 1rem;
-  }
-}
-
-/* =========================================================
-   MODAL & FORM GRID RESPONSIVE STYLES
-   ========================================================= */
-.hrms-form-grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem;
-}
-
-@media (max-width: 639px) {
-  .hrms-form-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-}
-
-.hrms-modal-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.75rem;
-}
 
 @media (max-width: 480px) {
-  .hrms-modal-footer-actions {
-    flex-direction: column-reverse;
-    width: 100%;
+
+  .hrms-header {
+    padding: 0 0.75rem;
   }
-  .hrms-modal-footer-actions button {
-    width: 100%;
+
+  .hrms-main-content {
+    padding: 0.75rem;
+    padding-top: calc(0.75rem + var(--header-height));
+  }
+
+  .hrms-header-left {
+    gap: 0.5rem;
+  }
+
+  .hrms-header-right {
+    gap: 0.4rem;
+  }
+
+  /* Hide user information, keep avatar */
+  .hrms-user-info {
+    display: none;
+  }
+
+  .hrms-user-profile {
+    width: 38px;
+    height: 38px;
+
+    padding: 0;
+
+    justify-content: center;
+
+    border-radius: 50%;
+  }
+
+  /* Smaller hamburger */
+  .hrms-hamburger-btn {
+    width: 36px;
+    height: 36px;
+
+    border-radius: 9px;
+  }
+
+  /* Keep title usable */
+  .hrms-page-title {
+    max-width: 150px;
+
+    font-size: 0.92rem;
   }
 }
 
+
+/* =========================================================
+   VERY SMALL DEVICES
+   <= 360px
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+  .hrms-header {
+    padding: 0 0.6rem;
+  }
+
+  .hrms-main-content {
+    padding: 0.6rem;
+  }
+
+  .hrms-page-title {
+    max-width: 120px;
+
+    font-size: 0.88rem;
+  }
+
+  .hrms-hamburger-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .hrms-user-profile {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY / INTERACTION
+   ========================================================= */
+
+.hrms-hamburger-btn:focus-visible {
+  outline: 2px solid #2f6b4f;
+  outline-offset: 2px;
+}
+
+
+/* =========================================================
+   REDUCE MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .hrms-main-wrapper {
+    transition: none;
+  }
+
+  .hrms-hamburger-btn {
+    transition: none;
+  }
+}

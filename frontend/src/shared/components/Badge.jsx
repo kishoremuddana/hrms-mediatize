@@ -29,7 +29,7 @@ export function Avatar({ src, name = "", size = "md", className = "", style = {}
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "var(--primary-color)",
+    backgroundColor: "#2f6b4f",
     color: "#ffffff",
     fontWeight: "700",
     fontSize,

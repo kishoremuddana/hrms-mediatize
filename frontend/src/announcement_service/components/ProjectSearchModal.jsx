@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Search, X, Users, Folder, AlertCircle } from "lucide-react";
+import {
+  Search,
+  X,
+  Users,
+  Folder,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  BriefcaseBusiness,
+} from "lucide-react";
 import { searchProjectsForAnnouncement } from "../services/announcementApi";
 import Button from "../../shared/components/Button";
 
@@ -22,11 +31,18 @@ const ProjectSearchModal = ({ isOpen, onClose, onSelectProject }) => {
   const fetchProjects = async (searchTerm) => {
     setLoading(true);
     setError(null);
+
     try {
-      const res = await searchProjectsForAnnouncement({ search: searchTerm });
+      const res = await searchProjectsForAnnouncement({
+        search: searchTerm,
+      });
+
       setProjects(res.data || []);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to search projects.");
+      setError(
+        err.response?.data?.detail ||
+          "Failed to search projects."
+      );
     } finally {
       setLoading(false);
     }
@@ -34,136 +50,696 @@ const ProjectSearchModal = ({ isOpen, onClose, onSelectProject }) => {
 
   const handleSearchChange = (e) => {
     const term = e.target.value;
+
     setSearch(term);
     fetchProjects(term);
+  };
+
+  const handleClearSearch = () => {
+    setSearch("");
+    fetchProjects("");
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        background: "rgba(3, 15, 10, 0.68)",
+        backdropFilter: "blur(5px)",
+      }}
+    >
+      {/* Modal */}
       <div
-        className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          maxHeight: "90vh",
+          minHeight: "0",
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="project-search-title"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-              <Folder className="w-5 h-5" />
+        {/* =========================================================
+            HEADER
+        ========================================================= */}
+        <div
+          style={{
+            background: "#0f4d32",
+            color: "#ffffff",
+            padding: "24px 28px",
+            position: "relative",
+            flexShrink: 0,
+            minHeight: "118px",
+            display: "flex",
+            alignItems: "center",
+            overflow: "hidden",
+          }}
+        >
+          {/* Decorative circle */}
+          <div
+            style={{
+              position: "absolute",
+              width: "180px",
+              height: "180px",
+              borderRadius: "50%",
+              border: "1px solid rgba(255,255,255,0.08)",
+              right: "-65px",
+              top: "-95px",
+              pointerEvents: "none",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              width: "100%",
+              paddingRight: "55px",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {/* Folder icon */}
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "14px",
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Folder size={26} strokeWidth={2} />
             </div>
-            <div>
-              <h2 id="project-search-title" className="text-lg font-bold text-gray-900 dark:text-white">
-                Select Project for Announcement
+
+            {/* Header content */}
+            <div
+              style={{
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  letterSpacing: "1.5px",
+                  marginBottom: "5px",
+                  color: "rgba(255,255,255,0.72)",
+                }}
+              >
+                PROJECT TARGETING
+              </div>
+
+              <h2
+                id="project-search-title"
+                style={{
+                  margin: 0,
+                  fontSize: "24px",
+                  lineHeight: "1.25",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                }}
+              >
+                Select a Project
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Search and choose a project to target announcement only to its active team members.
+
+              <p
+                style={{
+                  margin: "5px 0 0",
+                  fontSize: "13px",
+                  lineHeight: "1.4",
+                  color: "rgba(255,255,255,0.70)",
+                }}
+              >
+                Choose the project that should receive this announcement.
               </p>
             </div>
           </div>
+
+          {/* Close button */}
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Close modal"
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: "24px",
+              right: "24px",
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 2,
+            }}
           >
-            <X className="w-5 h-5" />
+            <X size={22} />
           </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700/60 bg-white dark:bg-gray-800">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        {/* =========================================================
+            SEARCH SECTION
+        ========================================================= */}
+        <div
+          style={{
+            padding: "22px 28px",
+            borderBottom: "1px solid #e5e7eb",
+            background: "#ffffff",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: 800,
+              letterSpacing: "1.2px",
+              color: "#166534",
+              marginBottom: "9px",
+            }}
+          >
+            FIND PROJECT
+          </div>
+
+          <div
+            style={{
+              position: "relative",
+            }}
+          >
+            <Search
+              size={20}
+              style={{
+                position: "absolute",
+                left: "16px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94a3b8",
+                pointerEvents: "none",
+              }}
+            />
+
             <input
               type="text"
               value={search}
               onChange={handleSearchChange}
-              placeholder="Search by project name or project code (e.g. PRJ001)..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400"
-              autoFocus
+              placeholder="Search by project name or code..."
+              style={{
+                width: "100%",
+                height: "54px",
+                padding: "0 46px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "12px",
+                background: "#f8fafc",
+                color: "#17251d",
+                fontSize: "14px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
             />
+
             {search && (
               <button
-                onClick={() => {
-                  setSearch("");
-                  fetchProjects("");
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: "32px",
+                  height: "32px",
+                  border: "none",
+                  borderRadius: "8px",
+                  background: "#e2e8f0",
+                  color: "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
-                <X className="w-4 h-4" />
+                <X size={17} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Project Results List */}
-        <div className="p-4 overflow-y-auto space-y-3 flex-1 min-h-0 hrms-custom-scrollbar">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-2">
-              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Searching projects...</p>
-            </div>
-          ) : error ? (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-12">
-              <Folder className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No projects found</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Try refining your search by project name or code.
-              </p>
-            </div>
-          ) : (
-            projects.map((proj) => (
-              <div
-                key={proj.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700/80 bg-white dark:bg-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-md transition-all gap-4"
+        {/* =========================================================
+            PROJECT RESULTS - ONLY THIS AREA SCROLLS
+        ========================================================= */}
+        <div
+          className="flex-1 overflow-y-auto min-h-0"
+          style={{
+            padding: "22px 28px",
+            background: "#ffffff",
+          }}
+        >
+          {/* Results heading */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "16px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "9px",
+              }}
+            >
+              <BriefcaseBusiness
+                size={19}
+                color="#166534"
+                strokeWidth={2}
+              />
+
+              <span
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 800,
+                  color: "#17251d",
+                }}
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                      {proj.project_code}
-                    </span>
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                      {proj.name}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-gray-400" />
-                      <strong>{proj.member_count}</strong> active member{proj.member_count !== 1 ? "s" : ""}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-                      {proj.status}
-                    </span>
-                  </div>
+                Available Projects
+              </span>
+            </div>
+
+            <div
+              style={{
+                padding: "7px 11px",
+                borderRadius: "999px",
+                background: "#ecfdf3",
+                color: "#166534",
+                fontSize: "12px",
+                fontWeight: 800,
+              }}
+            >
+              {projects.length} found
+            </div>
+          </div>
+
+          {/* Loading */}
+          {loading && (
+            <div
+              style={{
+                minHeight: "220px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "12px",
+                color: "#64748b",
+              }}
+            >
+              <div
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  border: "3px solid #d1fae5",
+                  borderTopColor: "#15803d",
+                  borderRadius: "50%",
+                  animation: "projectModalSpin 0.8s linear infinite",
+                }}
+              />
+
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                Searching projects...
+              </span>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div
+              style={{
+                padding: "18px",
+                borderRadius: "12px",
+                border: "1px solid #fecaca",
+                background: "#fef2f2",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "12px",
+              }}
+            >
+              <AlertCircle
+                size={20}
+                color="#dc2626"
+                style={{
+                  flexShrink: 0,
+                  marginTop: "1px",
+                }}
+              />
+
+              <div>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: "#991b1b",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Unable to load projects
                 </div>
 
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onSelectProject(proj)}
-                  className="w-full sm:w-auto shrink-0"
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "#b91c1c",
+                    lineHeight: "1.5",
+                  }}
                 >
-                  Make Announcement
-                </Button>
+                  {error}
+                </div>
               </div>
-            ))
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading && !error && projects.length === 0 && (
+            <div
+              style={{
+                minHeight: "220px",
+                border: "1px dashed #cbd5e1",
+                borderRadius: "14px",
+                background: "#f8fafc",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: "30px",
+              }}
+            >
+              <div
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "14px",
+                  background: "#ecfdf3",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "12px",
+                }}
+              >
+                <Folder
+                  size={24}
+                  color="#15803d"
+                />
+              </div>
+
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 800,
+                  color: "#17251d",
+                  marginBottom: "5px",
+                }}
+              >
+                No projects found
+              </div>
+
+              <div
+                style={{
+                  fontSize: "13px",
+                  color: "#64748b",
+                  maxWidth: "340px",
+                  lineHeight: "1.5",
+                }}
+              >
+                Try searching with a different project name or project code.
+              </div>
+            </div>
+          )}
+
+          {/* Project list */}
+          {!loading && !error && projects.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "14px",
+                    background: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#86efac";
+                    e.currentTarget.style.background = "#f8fffa";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    e.currentTarget.style.background = "#ffffff";
+                  }}
+                >
+                  {/* Project icon */}
+                  <div
+                    style={{
+                      width: "66px",
+                      height: "66px",
+                      borderRadius: "13px",
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Folder
+                      size={21}
+                      color="#15803d"
+                      strokeWidth={2}
+                    />
+
+                    <span
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "9px",
+                        fontWeight: 900,
+                        color: "#166534",
+                        letterSpacing: "0.4px",
+                      }}
+                    >
+                      PROJECT
+                    </span>
+                  </div>
+
+                  {/* Project information */}
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {/* Code + status */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                        marginBottom: "7px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "5px 8px",
+                          borderRadius: "6px",
+                          background: "#f1f5f9",
+                          border: "1px solid #e2e8f0",
+                          color: "#475569",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {project.project_code}
+                      </span>
+
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                          color: "#15803d",
+                        }}
+                      >
+                        <CheckCircle2 size={13} />
+                        {project.status || "ACTIVE"}
+                      </span>
+                    </div>
+
+                    {/* Project name */}
+                    <div
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 800,
+                        color: "#17251d",
+                        lineHeight: "1.35",
+                        marginBottom: "7px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={project.name}
+                    >
+                      {project.name}
+                    </div>
+
+                    {/* Members */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        color: "#94a3b8",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Users size={15} />
+
+                      <span>
+                        {project.member_count ?? 0} active members
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Select button */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectProject(project)}
+                    style={{
+                      border: "none",
+                      borderRadius: "10px",
+                      background: "#ecfdf3",
+                      color: "#166534",
+                      padding: "11px 13px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#dcfce7";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ecfdf3";
+                    }}
+                  >
+                    Select
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex justify-end">
-          <Button variant="secondary" size="md" onClick={onClose}>
+        {/* =========================================================
+            FOOTER
+        ========================================================= */}
+        <div
+          style={{
+            padding: "16px 28px",
+            borderTop: "1px solid #e5e7eb",
+            background: "#f8fafc",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            flexShrink: 0,
+          }}
+        >
+          {/* Footer information */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "9px",
+              color: "#64748b",
+              fontSize: "12px",
+              lineHeight: "1.4",
+            }}
+          >
+            <Users
+              size={16}
+              color="#64748b"
+              style={{
+                flexShrink: 0,
+              }}
+            />
+
+            <span>
+              Announcement will reach active project members.
+            </span>
+          </div>
+
+          {/* Cancel */}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+          >
             Cancel
           </Button>
         </div>
       </div>
+
+      {/* Spinner animation */}
+      <style>
+        {`
+          @keyframes projectModalSpin {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };

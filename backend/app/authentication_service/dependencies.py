@@ -101,30 +101,6 @@ def get_current_user(
 
 
 # ============================================================
-# Password Change Required
-# ============================================================
-
-def get_current_user_with_password_check(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    """
-    Get the currently authenticated user and ensure that
-    the user has completed any required password change.
-
-    Users with must_change_password=True are blocked from
-    normal protected HRMS endpoints.
-    """
-
-    if current_user.must_change_password:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Password change required before accessing this resource",
-        )
-
-    return current_user
-
-
-# ============================================================
 # Current HR
 # ============================================================
 

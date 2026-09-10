@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.authentication_service.dependencies import (
     get_current_hr,
-    get_current_user_with_password_check,
+    get_current_user,
 )
 from app.authentication_service.models import User
 from app.core.database import get_db
@@ -50,7 +50,7 @@ router = APIRouter(tags=["Leave Management"])
 )
 def get_active_leave_types_endpoint(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_active_leave_types(db)
 
@@ -171,7 +171,7 @@ def get_my_leaves_endpoint(
     status_param: Optional[LeaveStatus] = Query(None, alias="status"),
     year: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     employee = service.get_employee_record_by_user(db, current_user)
     return service.get_employee_leaves(
@@ -193,7 +193,7 @@ def get_my_leaves_endpoint(
 def get_my_leave_balance_endpoint(
     year: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     employee = service.get_employee_record_by_user(db, current_user)
     return service.get_employee_balances(db=db, employee_id=employee.id, year=year)
@@ -208,7 +208,7 @@ def get_my_leave_balance_endpoint(
 def get_my_leave_details_endpoint(
     leave_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_leave_details(db=db, leave_id=leave_id, current_user=current_user)
 
@@ -230,7 +230,7 @@ async def apply_leave_endpoint(
     reason: Optional[str] = Form(None),
     document: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     ip_address = request.client.host if request.client else None
 
@@ -287,7 +287,7 @@ def cancel_leave_endpoint(
     leave_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     ip_address = request.client.host if request.client else None
     return service.cancel_leave(
@@ -338,7 +338,7 @@ def get_all_leaves_endpoint(
 def get_leave_details_endpoint(
     leave_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
 ):
     return service.get_leave_details(db=db, leave_id=leave_id, current_user=current_user)
 
@@ -388,7 +388,28 @@ def reject_leave_endpoint(
         ip_address=ip_address,
     )
 
+@router.put(
+    "/leaves/{leave_id}/revoke",
+    response_model=LeaveRequestResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Revoke Leave Request (HR Only)",
+)
+def revoke_leave_endpoint(
+    leave_id: int,
+    review_in: LeaveRequestReview,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_hr: User = Depends(get_current_hr),
+):
+    ip_address = request.client.host if request.client else None
 
+    return service.revoke_leave(
+        db=db,
+        leave_id=leave_id,
+        review_in=review_in,
+        current_user=current_hr,
+        ip_address=ip_address,
+    )
 # ==========================================
 # HR LEAVE BALANCE ENDPOINTS
 # ==========================================

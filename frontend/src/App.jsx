@@ -1,15 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTheme } from "./shared/context/ThemeContext";
+import AuthContext from "./authentication_service/context/AuthContext";
+import { useContext } from "react";
 
 import Welcome from "./authentication_service/pages/Welcome";
 import Login from "./authentication_service/pages/Login";
-import ForgotPassword from "./authentication_service/pages/ForgotPassword";
-import ChangePassword from "./authentication_service/pages/ChangePassword";
 
 import HRDashboard from "./authentication_service/pages/HRDashboard";
-import PasswordResetRequests from "./authentication_service/pages/PasswordResetRequests";
 import EmployeeDashboard from "./authentication_service/pages/EmployeeDashboard";
 
 import EmployeeList from "./employee_service/pages/EmployeeList";
@@ -17,6 +16,7 @@ import CreateEmployee from "./employee_service/pages/CreateEmployee";
 import EditEmployee from "./employee_service/pages/EditEmployee";
 import EmployeeDetails from "./employee_service/pages/EmployeeDetails";
 import MyProfile from "./employee_service/pages/MyProfile";
+import HRProfile from "./employee_service/pages/HRProfile";
 import AuditLogs from "./audit_service/pages/AuditLogs";
 import Attendance from "./attendance_service/pages/Attendance";
 import Leave from "./leave_service/pages/Leave";
@@ -54,7 +54,27 @@ import HRGoals from "./performance_service/pages/HRGoals";
 import ProtectedRoute from "./authentication_service/routes/ProtectedRoute";
 import RoleProtectedRoute from "./authentication_service/routes/RoleProtectedRoute";
 
+function RootRedirect() {
+  const { user, loading } = useContext(AuthContext);
 
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <Welcome />;
+  }
+
+  if (user.role === "HR") {
+    return <Navigate to="/hr/dashboard" replace />;
+  }
+
+  if (user.role === "EMPLOYEE") {
+    return <Navigate to="/employee/dashboard" replace />;
+  }
+
+  return <Welcome />;
+}
 
 function App() {
   const { theme } = useTheme();
@@ -69,37 +89,13 @@ function App() {
 
         <Route
           path="/"
-          element={<Welcome />}
+          element={<RootRedirect />}
         />
 
         <Route
           path="/login"
           element={<Login />}
         />
-
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
-
-        {/* =====================================================
-            CHANGE PASSWORD
-            Authenticated users can access this route even when
-            must_change_password is true.
-        ===================================================== */}
-
-        <Route
-          element={
-            <ProtectedRoute
-              allowPasswordChange={true}
-            />
-          }
-        >
-          <Route
-            path="/change-password"
-            element={<ChangePassword />}
-          />
-        </Route>
 
         {/* =====================================================
             NORMAL PROTECTED ROUTES
@@ -121,6 +117,10 @@ function App() {
             <Route
               path="/hr/dashboard"
               element={<HRDashboard />}
+            />
+            <Route
+              path="/hr/profile"
+              element={<HRProfile />}
             />
             <Route
               path="/hr/employees"
@@ -161,10 +161,6 @@ function App() {
             <Route
               path="/hr/leave-balances"
               element={<LeaveBalances />}
-            />
-            <Route
-              path="/hr/password-reset-requests"
-              element={<PasswordResetRequests />}
             />
             <Route
               path="/hr/projects"

@@ -1,15 +1,37 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  CalendarDays,
+  Megaphone,
+  Star,
+  Clock,
+  ClipboardList,
+  Inbox,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
+
 import AppLayout from "../../shared/components/AppLayout";
 import { useAuth } from "../../authentication_service/hooks/useAuth";
 import BackToDashboard from "../../shared/components/BackToDashboard";
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "../services/notificationApi";
-import { showSuccess, showError } from "../../shared/utils/toast";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "../services/notificationApi";
+import {
+  showSuccess,
+  showError,
+} from "../../shared/utils/toast";
 
 function formatDateTime(dateString) {
   if (!dateString) return "";
+
   const date = new Date(dateString);
+
   return date.toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -18,14 +40,28 @@ function formatDateTime(dateString) {
 
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
+
   const date = new Date(dateString);
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  const diffInSeconds = Math.floor(
+    (now.getTime() - date.getTime()) / 1000
+  );
 
   if (diffInSeconds < 60) return "Just now";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+  if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)}m ago`;
+  }
+
+  if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  }
+
+  if (diffInSeconds < 604800) {
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  }
+
   return formatDateTime(dateString);
 }
 
@@ -35,27 +71,120 @@ function getNotificationTypeBadge(type) {
     case "LEAVE_APPROVED":
     case "LEAVE_REJECTED":
     case "LEAVE_CANCELLED":
-      return { label: "Leave", bg: "rgba(59, 130, 246, 0.2)", color: "#60a5fa" };
-    case "PASSWORD_RESET_REQUEST":
-      return { label: "Password Reset", bg: "rgba(234, 179, 8, 0.2)", color: "#facc15" };
+      return {
+        label: "Leave",
+        bg: "#edf6f0",
+        color: "#17613f",
+      };
+
     case "HOLIDAY_ANNOUNCEMENT":
-      return { label: "Holiday", bg: "rgba(234, 179, 8, 0.2)", color: "#facc15" };
+      return {
+        label: "Holiday",
+        bg: "#fff7e8",
+        color: "#9a6700",
+      };
+
     case "PERFORMANCE_UPDATE":
-      return { label: "Performance", bg: "rgba(168, 85, 247, 0.2)", color: "#c084fc" };
+      return {
+        label: "Performance",
+        bg: "#f5f3ed",
+        color: "#7a6330",
+      };
+
     case "ATTENDANCE_UPDATE":
-      return { label: "Attendance", bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80" };
+      return {
+        label: "Attendance",
+        bg: "#eef7f2",
+        color: "#276749",
+      };
+
     case "PROJECT_UPDATE":
-      return { label: "Project", bg: "rgba(14, 165, 233, 0.2)", color: "#38bdf8" };
+      return {
+        label: "Project",
+        bg: "#edf6f0",
+        color: "#17613f",
+      };
+
     case "TASK_UPDATE":
-      return { label: "Task", bg: "rgba(249, 115, 22, 0.2)", color: "#fb923c" };
+      return {
+        label: "Task",
+        bg: "#f3f5f2",
+        color: "#52665b",
+      };
+
     default:
-      return { label: "General", bg: "rgba(100, 116, 139, 0.2)", color: "#94a3b8" };
+      return {
+        label: "General",
+        bg: "#f1f4f2",
+        color: "#61736a",
+      };
+  }
+}
+
+function getNotificationIcon(type) {
+  switch (type) {
+    case "LEAVE_REQUEST":
+    case "LEAVE_APPROVED":
+    case "LEAVE_REJECTED":
+    case "LEAVE_CANCELLED":
+      return <CalendarDays size={18} strokeWidth={2} />;
+
+    case "HOLIDAY_ANNOUNCEMENT":
+      return <Megaphone size={18} strokeWidth={2} />;
+
+    case "PERFORMANCE_UPDATE":
+      return <Star size={18} strokeWidth={2} />;
+
+    case "ATTENDANCE_UPDATE":
+      return <Clock size={18} strokeWidth={2} />;
+
+    case "PROJECT_UPDATE":
+    case "TASK_UPDATE":
+      return <ClipboardList size={18} strokeWidth={2} />;
+
+    default:
+      return <Bell size={18} strokeWidth={2} />;
+  }
+}
+
+function getNotificationIconStyle(type) {
+  switch (type) {
+    case "HOLIDAY_ANNOUNCEMENT":
+    case "PERFORMANCE_UPDATE":
+      return {
+        backgroundColor: "#fff7e8",
+        color: "#9a6700",
+      };
+
+    case "ATTENDANCE_UPDATE":
+      return {
+        backgroundColor: "#eef7f2",
+        color: "#276749",
+      };
+
+    case "LEAVE_REQUEST":
+    case "LEAVE_APPROVED":
+    case "LEAVE_REJECTED":
+    case "LEAVE_CANCELLED":
+    case "PROJECT_UPDATE":
+    case "TASK_UPDATE":
+      return {
+        backgroundColor: "#edf6f0",
+        color: "#17613f",
+      };
+
+    default:
+      return {
+        backgroundColor: "#f1f4f2",
+        color: "#61736a",
+      };
   }
 }
 
 function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [total, setTotal] = useState(0);
@@ -70,15 +199,24 @@ function Notifications() {
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const res = await getNotifications({
         page,
         limit,
         unread_only: unreadOnly,
       });
+
       const data = res.data || {};
+
       const totalItems = data.total || 0;
-      const computedPages = data.pages || (limit > 0 ? Math.ceil(totalItems / limit) : 1) || 1;
+
+      const computedPages =
+        data.pages ||
+        (limit > 0
+          ? Math.ceil(totalItems / limit)
+          : 1) ||
+        1;
 
       setNotifications(data.items || []);
       setTotal(totalItems);
@@ -97,14 +235,83 @@ function Notifications() {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  const handleNotificationClick = async (item) => {
+    if (!item.is_read) {
+      try {
+        await markNotificationAsRead(item.id);
+        fetchNotifications();
+        window.dispatchEvent(new Event("hrms:notification_update"));
+      } catch (err) {
+          console.error("Failed to mark notification as read", err);
+      }
+    }
+
+    if (
+      item.notification_type === "LEAVE_REQUEST" ||
+      item.notification_type === "LEAVE_APPROVED" ||
+      item.notification_type === "LEAVE_REJECTED" ||
+      item.notification_type === "LEAVE_CANCELLED" ||
+      item.reference_type === "LEAVE"
+    ) {
+      if (user?.role === "HR") {
+        navigate("/hr/leaves");
+      } else {
+        navigate("/employee/leave");
+      }
+    } else if (item.notification_type === "PROJECT_UPDATE") {
+      if (user?.role === "HR") {
+        navigate("/hr/projects");
+      } else {
+        navigate("/employee/projects");
+      }
+    } else if (item.notification_type === "PERFORMANCE_UPDATE") {
+      if (user?.role === "HR") {
+        navigate("/hr/performance");
+      } else {
+        navigate("/employee/performance");
+      }
+    } else if (
+        item.notification_type === "COMPANY_ANNOUNCEMENT" ||
+        item.notification_type === "PROJECT_ANNOUNCEMENT" ||
+        item.notification_type === "HOLIDAY_ANNOUNCEMENT" ||
+        item.notification_type === "GENERAL_ANNOUNCEMENT"
+      ) {
+        if (user?.role === "HR") {
+          navigate("/hr/announcements");
+        } else {
+          navigate("/employee/announcements");
+        }
+      } else if (
+        item.notification_type === "COMPLAINT_SUBMITTED" ||
+        item.notification_type === "COMPLAINT_UPDATED" ||
+        item.notification_type === "COMPLAINT_RESOLVED"
+      ) {
+        if (user?.role === "HR") {
+          navigate("/hr/complaints");
+        } else {
+          navigate("/employee/complaints");
+        }
+      }
+  };
+
+
   const handleMarkRead = async (id) => {
     try {
       await markNotificationAsRead(id);
+
       showSuccess("Notification marked as read.");
+
       fetchNotifications();
-      window.dispatchEvent(new Event("hrms:notification_update"));
+
+      window.dispatchEvent(
+        new Event("hrms:notification_update")
+      );
     } catch (err) {
-      console.error("Failed to mark notification as read", err);
+      console.error(
+        "Failed to mark notification as read",
+        err
+      );
+
       showError("Failed to mark notification as read.");
     }
   };
@@ -112,353 +319,1171 @@ function Notifications() {
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsAsRead();
+
       showSuccess("All notifications marked as read.");
+
       fetchNotifications();
-      window.dispatchEvent(new Event("hrms:notification_update"));
+
+      window.dispatchEvent(
+        new Event("hrms:notification_update")
+      );
     } catch (err) {
-      console.error("Failed to mark all notifications as read", err);
-      showError("Failed to mark all notifications as read.");
+      console.error(
+        "Failed to mark all notifications as read",
+        err
+      );
+
+      showError(
+        "Failed to mark all notifications as read."
+      );
     }
   };
 
   const totalPages = Math.max(1, pages);
-  const backTarget = user?.role === "HR" ? "/hr/dashboard" : "/employee/dashboard";
+
+  const backTarget =
+    user?.role === "HR"
+      ? "/hr/dashboard"
+      : "/employee/dashboard";
 
   return (
     <AppLayout title="Notifications Center">
-      <div style={styles.container}>
-        <BackToDashboard to={backTarget} role={user?.role} />
+      <div style={styles.pageContainer}>
+        <BackToDashboard
+          to={backTarget}
+          role={user?.role}
+        />
 
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Notifications Center</h1>
-            <p style={styles.subtitle}>View system notifications and real-time activity updates</p>
+        {/* Hero */}
+        <section style={styles.hero}>
+          <div style={styles.heroContent}>
+            <div style={styles.heroIcon}>
+              <Bell size={25} strokeWidth={2} />
+            </div>
+
+            <div>
+              <div style={styles.eyebrow}>
+                HRMS COMMUNICATION CENTER
+              </div>
+
+              <h1 style={styles.title}>
+                Notifications
+              </h1>
+
+              <p style={styles.subtitle}>
+                Stay updated with important workplace
+                activity, requests, announcements and
+                system updates.
+              </p>
+            </div>
           </div>
 
           {unreadCount > 0 && (
-            <button style={{ ...styles.markAllBtn, display: "inline-flex", alignItems: "center", gap: "0.375rem" }} onClick={handleMarkAllRead}>
-              <CheckCheck size={16} /> Mark all as read ({unreadCount})
+            <button
+              type="button"
+              style={styles.markAllBtn}
+              onClick={handleMarkAllRead}
+            >
+              <CheckCheck
+                size={16}
+                strokeWidth={2}
+              />
+
+              <span>
+                Mark all as read ({unreadCount})
+              </span>
             </button>
           )}
-        </div>
+        </section>
 
-        {/* Filter Tabs */}
-        <div style={styles.tabsRow}>
-          <div style={styles.tabs}>
+        {/* Summary */}
+        <section style={styles.summaryGrid}>
+          <div style={styles.summaryCard}>
+            <div
+              style={{
+                ...styles.summaryIcon,
+                backgroundColor: "#edf6f0",
+                color: "#17613f",
+              }}
+            >
+              <Inbox size={19} />
+            </div>
+
+            <div>
+              <span style={styles.summaryLabel}>
+                Total Notifications
+              </span>
+
+              <strong style={styles.summaryValue}>
+                {total}
+              </strong>
+            </div>
+          </div>
+
+          <div style={styles.summaryCard}>
+            <div
+              style={{
+                ...styles.summaryIcon,
+                backgroundColor: "#fff7e8",
+                color: "#9a6700",
+              }}
+            >
+              <Bell size={19} />
+            </div>
+
+            <div>
+              <span style={styles.summaryLabel}>
+                Unread
+              </span>
+
+              <strong style={styles.summaryValue}>
+                {unreadCount}
+              </strong>
+            </div>
+          </div>
+
+          <div style={styles.summaryCard}>
+            <div
+              style={{
+                ...styles.summaryIcon,
+                backgroundColor: "#f1f4f2",
+                color: "#61736a",
+              }}
+            >
+              <RefreshCw size={18} />
+            </div>
+
+            <div>
+              <span style={styles.summaryLabel}>
+                Current View
+              </span>
+
+              <strong style={styles.summaryValueSmall}>
+                {unreadOnly ? "Unread Only" : "All"}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        {/* Explorer */}
+        <section style={styles.explorer}>
+          <div style={styles.explorerHeader}>
+            <div>
+              <div style={styles.sectionEyebrow}>
+                NOTIFICATION EXPLORER
+              </div>
+
+              <h2 style={styles.sectionTitle}>
+                Your notifications
+              </h2>
+
+              <p style={styles.sectionDescription}>
+                Review recent updates and take action
+                where required.
+              </p>
+            </div>
+
             <button
+              type="button"
+              style={styles.refreshBtn}
+              onClick={fetchNotifications}
+              title="Refresh notifications"
+            >
+              <RefreshCw
+                size={15}
+                strokeWidth={2}
+              />
+
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {/* Filter Tabs */}
+          <div style={styles.tabsContainer}>
+            <button
+              type="button"
               style={{
                 ...styles.tab,
-                ...(unreadOnly ? {} : styles.activeTab),
+                ...(unreadOnly
+                  ? {}
+                  : styles.activeTab),
               }}
               onClick={() => {
                 setUnreadOnly(false);
                 setPage(1);
               }}
             >
-              All Notifications ({total})
+              <Bell size={15} />
+
+              <span>
+                All Notifications ({total})
+              </span>
             </button>
+
             <button
+              type="button"
               style={{
                 ...styles.tab,
-                ...(unreadOnly ? styles.activeTab : {}),
+                ...(unreadOnly
+                  ? styles.activeTab
+                  : {}),
               }}
               onClick={() => {
                 setUnreadOnly(true);
                 setPage(1);
               }}
             >
-              Unread ({unreadCount})
+              <Inbox size={15} />
+
+              <span>
+                Unread ({unreadCount})
+              </span>
             </button>
           </div>
-        </div>
+        </section>
 
+        {/* Content */}
         {loading ? (
-          <div style={styles.emptyCard}>Loading notifications...</div>
+          <div style={styles.stateCard}>
+            <div style={styles.loadingSpinner}>
+              <RefreshCw
+                size={22}
+                strokeWidth={2}
+              />
+            </div>
+
+            <h3 style={styles.stateTitle}>
+              Loading notifications
+            </h3>
+
+            <p style={styles.stateText}>
+              Please wait while we retrieve your
+              latest notifications.
+            </p>
+          </div>
         ) : error ? (
-          <div style={styles.emptyCard}>{error}</div>
+          <div style={styles.stateCard}>
+            <div style={styles.stateIcon}>
+              <Bell size={23} />
+            </div>
+
+            <h3 style={styles.stateTitle}>
+              Unable to load notifications
+            </h3>
+
+            <p style={styles.stateText}>
+              {error}
+            </p>
+
+            <button
+              type="button"
+              style={styles.retryBtn}
+              onClick={fetchNotifications}
+            >
+              <RefreshCw size={15} />
+              Try again
+            </button>
+          </div>
         ) : notifications.length === 0 ? (
-          <div style={styles.emptyCard}>
-            <Bell size={40} style={{ marginBottom: "0.5rem", color: "var(--text-muted)" }} />
-            <h3 style={{ margin: 0, color: "var(--text-primary)" }}>No notifications found</h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "0.25rem" }}>
-              {unreadOnly ? "You have no unread notifications." : "You're all caught up!"}
+          <div style={styles.stateCard}>
+            <div style={styles.stateIcon}>
+              <Inbox size={26} />
+            </div>
+
+            <h3 style={styles.stateTitle}>
+              No notifications found
+            </h3>
+
+            <p style={styles.stateText}>
+              {unreadOnly
+                ? "You have no unread notifications."
+                : "You're all caught up!"}
             </p>
           </div>
         ) : (
-          <div style={styles.list}>
+          <section style={styles.notificationList}>
             {notifications.map((item) => {
-              const typeBadge = getNotificationTypeBadge(item.notification_type);
+              const typeBadge =
+                getNotificationTypeBadge(
+                  item.notification_type
+                );
+
               return (
-                <div
+                <article
                   key={item.id}
                   style={{
                     ...styles.card,
-                    backgroundColor: item.is_read ? "var(--bg-surface)" : "var(--bg-surface-elevated)",
-                    borderColor: item.is_read ? "var(--border-color)" : "var(--primary-color)",
+                    ...(item.is_read ? styles.readCard : styles.unreadCard),
+                    cursor: "pointer",
                   }}
+                  onClick={() => handleNotificationClick(item)}
                 >
-                  <div style={styles.cardHeader}>
-                    <div style={styles.typeBadgeRow}>
-                      <span
+                  {/* Unread bar */}
+                  {!item.is_read && (
+                    <span
+                      style={styles.unreadBar}
+                    />
+                  )}
+
+                  {/* Top row */}
+                  <div style={styles.cardTop}>
+                    <div style={styles.cardIdentity}>
+                      <div
                         style={{
-                          ...styles.typeBadge,
-                          backgroundColor: typeBadge.bg,
-                          color: typeBadge.color,
+                          ...styles.notificationIcon,
+                          ...getNotificationIconStyle(
+                            item.notification_type
+                          ),
                         }}
                       >
-                        {typeBadge.label}
-                      </span>
-                      {!item.is_read && <span style={styles.unreadTag}>NEW</span>}
+                        {getNotificationIcon(
+                          item.notification_type
+                        )}
+                      </div>
+
+                      <div style={styles.badges}>
+                        <span
+                          style={{
+                            ...styles.typeBadge,
+                            backgroundColor:
+                              typeBadge.bg,
+                            color:
+                              typeBadge.color,
+                          }}
+                        >
+                          {typeBadge.label}
+                        </span>
+
+                        {!item.is_read && (
+                          <span
+                            style={styles.newBadge}
+                          >
+                            NEW
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span style={styles.timeText}>{formatTimeAgo(item.created_at)}</span>
+
+                    <span style={styles.timeText}>
+                      {formatTimeAgo(
+                        item.created_at
+                      )}
+                    </span>
                   </div>
 
-                  <h3 style={styles.itemTitle}>{item.title}</h3>
-                  <p style={styles.itemMessage}>{item.message}</p>
+                  {/* Content */}
+                  <div style={styles.cardContent}>
+                    <h3 style={styles.itemTitle}>
+                      {item.title}
+                    </h3>
 
+                    <p style={styles.itemMessage}>
+                      {item.message}
+                    </p>
+                  </div>
+
+                  {/* Footer */}
                   <div style={styles.cardFooter}>
-                    {(item.notification_type === "PASSWORD_RESET_REQUEST" || item.reference_type === "PASSWORD_RESET") && (
-                      <button
-                        style={{
-                          backgroundColor: "var(--primary-light, rgba(99, 102, 241, 0.1))",
-                          color: "var(--primary-color, #4f46e5)",
-                          border: "1px solid var(--primary-border, rgba(99, 102, 241, 0.3))",
-                          padding: "0.35rem 0.85rem",
-                          borderRadius: "var(--radius-md)",
-                          fontSize: "0.8rem",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
-                          marginRight: "auto",
-                        }}
-                        onClick={async () => {
-                          if (!item.is_read) await handleMarkRead(item.id);
-                          navigate("/hr/password-reset-requests");
-                        }}
-                      >
-                        <ExternalLink size={14} /> View Password Reset Requests
-                      </button>
-                    )}
-                    {!item.is_read ? (
-                      <button
-                        style={styles.readBtn}
-                        onClick={() => handleMarkRead(item.id)}
-                      >
-                        Mark as read
-                      </button>
-                    ) : (
-                      <span style={styles.readAtText}>
-                        Read {item.read_at ? formatTimeAgo(item.read_at) : ""}
-                      </span>
-                    )}
+
+                    <div style={styles.readAction}>
+                      {!item.is_read ? (
+                        <button
+                          type="button"
+                          style={styles.readBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkRead(item.id);
+                          }}
+                        >
+                          <CheckCheck size={14} />
+
+                          <span>
+                            Mark as read
+                          </span>
+                        </button>
+                      ) : (
+                        <span style={styles.readAtText}>
+                          Read{" "}
+                          {item.read_at
+                            ? formatTimeAgo(
+                                item.read_at
+                              )
+                            : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </article>
               );
             })}
-          </div>
+          </section>
         )}
 
+        {/* Pagination */}
         {totalPages > 1 && (
           <div style={styles.pagination}>
             <button
+              type="button"
               style={{
                 ...styles.pageBtn,
-                opacity: page === 1 ? 0.5 : 1,
-                cursor: page === 1 ? "not-allowed" : "pointer",
+                opacity: page === 1 ? 0.45 : 1,
+                cursor:
+                  page === 1
+                    ? "not-allowed"
+                    : "pointer",
               }}
               disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() =>
+                setPage((p) =>
+                  Math.max(1, p - 1)
+                )
+              }
             >
-              Previous
+              <ChevronLeft size={16} />
+
+              <span>Previous</span>
             </button>
 
-            <span style={styles.pageInfo}>
-              Page {page} of {totalPages}
-            </span>
+            <div style={styles.pageIndicator}>
+              <span style={styles.pageLabel}>
+                PAGE
+              </span>
+
+              <strong>
+                {page}
+              </strong>
+
+              <span>
+                of {totalPages}
+              </span>
+            </div>
 
             <button
+              type="button"
               style={{
                 ...styles.pageBtn,
-                opacity: page === totalPages ? 0.5 : 1,
-                cursor: page === totalPages ? "not-allowed" : "pointer",
+                opacity:
+                  page === totalPages
+                    ? 0.45
+                    : 1,
+                cursor:
+                  page === totalPages
+                    ? "not-allowed"
+                    : "pointer",
               }}
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() =>
+                setPage((p) =>
+                  Math.min(
+                    totalPages,
+                    p + 1
+                  )
+                )
+              }
             >
-              Next
+              <span>Next</span>
+
+              <ChevronRight size={16} />
             </button>
           </div>
         )}
       </div>
+
+      <style>
+        {`
+          @keyframes hrmsNotificationsSpin {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @media (max-width: 768px) {
+            .hrms-notification-action {
+              width: 100%;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .hrms-notification-hero {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+
+            .hrms-notification-card-footer {
+              flex-direction: column !important;
+              align-items: stretch !important;
+            }
+          }
+        `}
+      </style>
     </AppLayout>
   );
 }
 
 const styles = {
-  container: {
-    padding: "0 0 2rem 0",
-    maxWidth: "850px",
+  pageContainer: {
+    width: "100%",
+    maxWidth: "1050px",
+    margin: "0 auto",
+    padding: "0 0 40px",
   },
-  header: {
+
+  hero: {
+    marginTop: "18px",
+    padding: "24px 26px",
+
+    background:
+      "linear-gradient(135deg, #173f2d 0%, #245b42 100%)",
+
+    borderRadius: "18px",
+
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1.5rem",
-    paddingBottom: "1rem",
-    borderBottom: "1px solid var(--border-color)",
-    flexWrap: "wrap",
-    gap: "1rem",
+    justifyContent: "space-between",
+
+    gap: "20px",
+
+    boxShadow:
+      "0 10px 28px rgba(23, 63, 45, 0.14)",
   },
+
+  heroContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    minWidth: 0,
+  },
+
+  heroIcon: {
+    width: "52px",
+    height: "52px",
+
+    borderRadius: "15px",
+
+    backgroundColor:
+      "rgba(255, 255, 255, 0.12)",
+
+    color: "#ffffff",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    flexShrink: 0,
+
+    border:
+      "1px solid rgba(255, 255, 255, 0.14)",
+  },
+
+  eyebrow: {
+    color: "#b9d8c5",
+    fontSize: "10px",
+    fontWeight: "800",
+    letterSpacing: "1.2px",
+    marginBottom: "5px",
+  },
+
   title: {
-    fontSize: "1.875rem",
-    fontWeight: "700",
-    color: "var(--text-primary)",
+    color: "#ffffff",
+    fontSize: "25px",
+    fontWeight: "800",
     margin: 0,
+    lineHeight: 1.2,
   },
+
   subtitle: {
-    fontSize: "0.9rem",
-    color: "var(--text-secondary)",
-    marginTop: "0.25rem",
+    color: "#d4e4da",
+    fontSize: "12px",
+    lineHeight: 1.5,
+    margin: "6px 0 0",
+    maxWidth: "650px",
   },
+
   markAllBtn: {
-    backgroundColor: "var(--primary-color)",
-    color: "var(--text-on-primary)",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontWeight: "600",
-    fontSize: "0.85rem",
+    border: "1px solid rgba(255,255,255,0.2)",
+    backgroundColor: "#ffffff",
+    color: "#17613f",
+
+    borderRadius: "10px",
+
+    padding: "10px 13px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "7px",
+
+    fontSize: "11px",
+    fontWeight: "750",
+
     cursor: "pointer",
+
+    whiteSpace: "nowrap",
+
+    flexShrink: 0,
   },
-  tabsRow: {
-    marginBottom: "1.5rem",
+
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(3, minmax(0, 1fr))",
+
+    gap: "12px",
+
+    marginTop: "14px",
   },
-  tabs: {
+
+  summaryCard: {
+    backgroundColor: "#ffffff",
+
+    border: "1px solid #dfe8e2",
+
+    borderRadius: "13px",
+
+    padding: "14px 15px",
+
     display: "flex",
-    flexWrap: "wrap",
-    gap: "0.5rem",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
+    alignItems: "center",
+    gap: "11px",
+
+    boxShadow:
+      "0 2px 8px rgba(23, 63, 45, 0.04)",
   },
-  tab: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  activeTab: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--primary-color)",
-  },
-  list: {
+
+  summaryIcon: {
+    width: "38px",
+    height: "38px",
+
+    borderRadius: "10px",
+
     display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
+    alignItems: "center",
+    justifyContent: "center",
+
+    flexShrink: 0,
   },
-  card: {
-    border: "1px solid",
-    borderRadius: "var(--radius-lg)",
-    padding: "1.25rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5rem",
+
+  summaryLabel: {
+    display: "block",
+
+    color: "#7a8981",
+
+    fontSize: "10px",
+    fontWeight: "650",
+
+    marginBottom: "3px",
   },
-  cardHeader: {
+
+  summaryValue: {
+    display: "block",
+
+    color: "#20382c",
+
+    fontSize: "18px",
+    fontWeight: "800",
+  },
+
+  summaryValueSmall: {
+    display: "block",
+
+    color: "#20382c",
+
+    fontSize: "13px",
+    fontWeight: "800",
+  },
+
+  explorer: {
+    marginTop: "20px",
+
+    backgroundColor: "#ffffff",
+
+    border:
+      "1px solid #dfe8e2",
+
+    borderRadius: "15px",
+
+    overflow: "hidden",
+
+    boxShadow:
+      "0 2px 10px rgba(23, 63, 45, 0.04)",
+  },
+
+  explorerHeader: {
+    padding: "18px 20px",
+
     display: "flex",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
+
+    gap: "15px",
   },
-  typeBadgeRow: {
+
+  sectionEyebrow: {
+    color: "#5b7869",
+
+    fontSize: "9px",
+    fontWeight: "800",
+
+    letterSpacing: "1px",
+
+    marginBottom: "4px",
+  },
+
+  sectionTitle: {
+    margin: 0,
+
+    color: "#20382c",
+
+    fontSize: "16px",
+    fontWeight: "800",
+  },
+
+  sectionDescription: {
+    margin: "4px 0 0",
+
+    color: "#7a8981",
+
+    fontSize: "11px",
+  },
+
+  refreshBtn: {
+    border: "1px solid #d3dfd7",
+
+    backgroundColor: "#f7faf8",
+
+    color: "#35614c",
+
+    borderRadius: "9px",
+
+    padding: "8px 11px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+
+    fontSize: "10px",
+    fontWeight: "700",
+
+    cursor: "pointer",
+
+    flexShrink: 0,
+  },
+
+  tabsContainer: {
     display: "flex",
     alignItems: "center",
-    gap: "0.5rem",
+
+    gap: "5px",
+
+    padding: "0 20px",
+
+    borderTop: "1px solid #edf1ee",
+
+    backgroundColor: "#fbfcfb",
   },
-  typeBadge: {
-    fontSize: "0.75rem",
+
+  tab: {
+    position: "relative",
+
+    border: "none",
+
+    backgroundColor: "transparent",
+
+    color: "#77867e",
+
+    padding: "12px 13px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+
+    fontSize: "11px",
     fontWeight: "700",
-    padding: "0.2rem 0.5rem",
-    borderRadius: "var(--radius-sm)",
+
+    cursor: "pointer",
+
+    borderBottom:
+      "2px solid transparent",
+  },
+
+  activeTab: {
+    color: "#17613f",
+
+    borderBottom:
+      "2px solid #28734d",
+
+    backgroundColor: "#f1f7f3",
+  },
+
+  notificationList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "11px",
+
+    marginTop: "15px",
+  },
+
+  card: {
+    position: "relative",
+
+    border: "1px solid",
+
+    borderRadius: "14px",
+
+    padding: "16px 17px",
+
+    display: "flex",
+    flexDirection: "column",
+
+    gap: "12px",
+
+    overflow: "hidden",
+
+    boxShadow:
+      "0 2px 7px rgba(23, 63, 45, 0.035)",
+  },
+
+  readCard: {
+    backgroundColor: "#ffffff",
+    borderColor: "#e0e8e3",
+  },
+
+  unreadCard: {
+    backgroundColor: "#f8fbf9",
+    borderColor: "#bfd3c6",
+  },
+
+  unreadBar: {
+    position: "absolute",
+
+    top: 0,
+    bottom: 0,
+    left: 0,
+
+    width: "3px",
+
+    backgroundColor: "#28734d",
+  },
+
+  cardTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    gap: "10px",
+  },
+
+  cardIdentity: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
+
+  notificationIcon: {
+    width: "38px",
+    height: "38px",
+
+    borderRadius: "11px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    flexShrink: 0,
+  },
+
+  badges: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
+  },
+
+  typeBadge: {
+    padding: "5px 8px",
+
+    borderRadius: "6px",
+
+    fontSize: "9px",
+    fontWeight: "800",
+
+    letterSpacing: "0.4px",
     textTransform: "uppercase",
   },
-  unreadTag: {
-    backgroundColor: "var(--primary-color)",
-    color: "#ffffff",
-    fontSize: "0.65rem",
-    fontWeight: "700",
-    padding: "0.15rem 0.4rem",
-    borderRadius: "9999px",
+
+  newBadge: {
+    padding: "4px 7px",
+
+    borderRadius: "999px",
+
+    backgroundColor: "#e7f3eb",
+    color: "#17613f",
+
+    fontSize: "8px",
+    fontWeight: "850",
+
+    letterSpacing: "0.5px",
   },
+
   timeText: {
-    fontSize: "0.8rem",
-    color: "var(--text-muted)",
+    color: "#8a9790",
+
+    fontSize: "10px",
+    fontWeight: "600",
+
+    whiteSpace: "nowrap",
   },
+
+  cardContent: {
+    paddingLeft: "48px",
+  },
+
   itemTitle: {
-    fontSize: "1.1rem",
-    fontWeight: "600",
-    color: "var(--text-primary)",
-    margin: "0.25rem 0 0 0",
-  },
-  itemMessage: {
-    fontSize: "0.9rem",
-    color: "var(--text-secondary)",
-    lineHeight: 1.4,
+    color: "#243a2f",
+
+    fontSize: "14px",
+    fontWeight: "750",
+
     margin: 0,
+
+    lineHeight: 1.35,
   },
+
+  itemMessage: {
+    color: "#68786f",
+
+    fontSize: "11px",
+    lineHeight: 1.55,
+
+    margin: "6px 0 0",
+  },
+
   cardFooter: {
+    minHeight: "30px",
+
     display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "0.5rem",
+    alignItems: "center",
+
+    gap: "10px",
+
+    paddingLeft: "48px",
+
+    borderTop: "1px solid #edf1ee",
+
+    paddingTop: "10px",
   },
-  readBtn: {
-    backgroundColor: "var(--bg-surface-elevated)",
-    color: "var(--primary-color)",
-    border: "1px solid var(--border-color)",
-    padding: "0.35rem 0.85rem",
-    borderRadius: "var(--radius-md)",
-    fontSize: "0.8rem",
-    fontWeight: "600",
+
+  actionBtn: {
+    border: "1px solid #c9dacf",
+
+    backgroundColor: "#edf6f0",
+
+    color: "#17613f",
+
+    borderRadius: "8px",
+
+    padding: "7px 10px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+
+    fontSize: "10px",
+    fontWeight: "750",
+
     cursor: "pointer",
   },
+
+  readAction: {
+    marginLeft: "auto",
+
+    display: "flex",
+    alignItems: "center",
+  },
+
+  readBtn: {
+    border: "1px solid #cbd9d0",
+
+    backgroundColor: "#ffffff",
+
+    color: "#35614c",
+
+    borderRadius: "8px",
+
+    padding: "7px 10px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+
+    fontSize: "10px",
+    fontWeight: "700",
+
+    cursor: "pointer",
+  },
+
   readAtText: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
+    color: "#98a49e",
+
+    fontSize: "9px",
     fontStyle: "italic",
   },
-  emptyCard: {
-    backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-lg)",
-    padding: "3rem 1.5rem",
+
+  stateCard: {
+    marginTop: "15px",
+
+    minHeight: "260px",
+
+    backgroundColor: "#ffffff",
+
+    border:
+      "1px solid #dfe8e2",
+
+    borderRadius: "15px",
+
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+
     textAlign: "center",
-    color: "var(--text-muted)",
+
+    padding: "30px",
   },
+
+  stateIcon: {
+    width: "52px",
+    height: "52px",
+
+    borderRadius: "15px",
+
+    backgroundColor: "#f1f6f3",
+    color: "#5e796b",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: "12px",
+  },
+
+  loadingSpinner: {
+    width: "48px",
+    height: "48px",
+
+    borderRadius: "14px",
+
+    backgroundColor: "#edf6f0",
+    color: "#17613f",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: "12px",
+
+    animation:
+      "hrmsNotificationsSpin 1s linear infinite",
+  },
+
+  stateTitle: {
+    margin: 0,
+
+    color: "#263d32",
+
+    fontSize: "14px",
+    fontWeight: "800",
+  },
+
+  stateText: {
+    maxWidth: "390px",
+
+    margin: "6px 0 0",
+
+    color: "#7c8982",
+
+    fontSize: "11px",
+    lineHeight: 1.5,
+  },
+
+  retryBtn: {
+    marginTop: "14px",
+
+    border: "1px solid #c9dacf",
+
+    backgroundColor: "#edf6f0",
+
+    color: "#17613f",
+
+    borderRadius: "8px",
+
+    padding: "8px 12px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+
+    fontSize: "10px",
+    fontWeight: "750",
+
+    cursor: "pointer",
+  },
+
   pagination: {
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: "1rem",
-    marginTop: "2rem",
+    justifyContent: "center",
+
+    gap: "12px",
+
+    marginTop: "20px",
   },
+
   pageBtn: {
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-color)",
-    padding: "0.5rem 1rem",
-    borderRadius: "var(--radius-md)",
-    cursor: "pointer",
-    fontSize: "0.85rem",
-    fontWeight: "600",
+    border: "1px solid #d6e1da",
+
+    backgroundColor: "#ffffff",
+
+    color: "#3b5d4c",
+
+    borderRadius: "9px",
+
+    padding: "8px 11px",
+
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+
+    fontSize: "10px",
+    fontWeight: "700",
   },
-  pageInfo: {
-    fontSize: "0.875rem",
-    color: "var(--text-secondary)",
+
+  pageIndicator: {
+    minWidth: "100px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: "5px",
+
+    color: "#718078",
+
+    fontSize: "10px",
+  },
+
+  pageLabel: {
+    color: "#a0aaa5",
+
+    fontSize: "8px",
+    fontWeight: "800",
+
+    letterSpacing: "0.7px",
   },
 };
 

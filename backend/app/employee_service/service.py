@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 from app.audit_service.models import AuditAction
 from app.audit_service.service import create_audit_log
 from app.authentication_service.models import User, UserRole
-from app.authentication_service.utils import generate_temporary_password
+
 from app.core.config import settings
-from app.core.security import hash_password
-from app.email_service.service import send_email, send_employee_welcome_email
+
+from app.email_service.service import send_employee_welcome_email
 from app.employee_service.models import Employee, EmploymentStatus
 from app.employee_service.schemas import EmployeeCreate, EmployeeSelfUpdate, EmployeeUpdate
 
@@ -65,8 +65,8 @@ def create_employee(
 ) -> Employee:
     """
     Create a new employee profile and corresponding User account in a single transaction.
-    Generates employee_code and initial temporary password, hashes password,
-    creates records, and triggers welcome email notification.
+    Generates employee_code, creates the user and employee records,
+    and triggers a welcome email notification.
     """
 
     # 1. Validate email uniqueness in users table
@@ -79,17 +79,11 @@ def create_employee(
             detail="A user with this email address already exists.",
         )
 
-    # 2. Generate initial temporary password & hash it
-    temp_password = generate_temporary_password(12)
-    hashed_pw = hash_password(temp_password)
-
     # 3. Create User record (Module 1)
     user = User(
         email=data.email,
-        password_hash=hashed_pw,
         role=UserRole.EMPLOYEE,
         is_active=True,
-        must_change_password=True,
     )
     db.add(user)
     db.flush()
@@ -118,21 +112,24 @@ def create_employee(
     db.commit()
     db.refresh(employee)
 
-    # 7. Send Professional HTML Welcome Email (Non-blocking DB error protection)
+   
+    # 7. Send Welcome Email
     try:
         login_url = f"{settings.FRONTEND_URL.rstrip('/')}/login"
         full_name = f"{data.first_name} {data.last_name}".strip()
+
         send_employee_welcome_email(
             recipient_email=data.email,
             employee_name=full_name,
-            temporary_password=temp_password,
             login_url=login_url,
             employee_code=employee_code,
         )
-    except Exception as exc:
-        # Log email dispatch failure without disrupting successful DB record creation
-        print(f"[Warning] Welcome email sending failed for {data.email}: {exc}")
 
+    except Exception as exc:
+        print(
+            f"[Warning] Welcome email sending failed "
+            f"for {data.email}: {exc}"
+        )    
     return employee
 
 
@@ -177,6 +174,58 @@ def get_employee_by_user_id(db: Session, user_id: int) -> Employee:
         )
     return employee
 
+def get_or_create_hr_profile(db: Session, user: User) -> Employee:
+    """
+    Get the HR user's employee profile.
+    If the HR user does not have an employee record yet,
+    create one in the existing employees table.
+    """
+
+    statement = select(Employee).where(
+        Employee.user_id == user.id,
+        Employee.deleted_at.is_(None),
+    )
+
+    employee = db.scalar(statement)
+
+    if employee is not None:
+        return employee
+
+    if user.role != UserRole.HR:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee profile not found",
+        )
+
+    employee_code = user.employee_id or "HR001"
+
+    existing_code = db.scalar(
+        select(Employee).where(
+            Employee.employee_code == employee_code
+        )
+    )
+
+    if existing_code is not None:
+        employee_code = f"HR{user.id:03d}"
+
+    employee = Employee(
+        user_id=user.id,
+        employee_code=employee_code,
+        first_name="",
+        last_name="",
+        employment_status=EmploymentStatus.ACTIVE,
+    )
+
+    db.add(employee)
+
+    try:
+        db.commit()
+        db.refresh(employee)
+    except Exception:
+        db.rollback()
+        raise
+
+    return employee
 
 # ============================================================
 # List Employees (Search, Filter, Pagination)
@@ -394,13 +443,62 @@ def update_self_profile(
     Allow an authenticated employee to update their allowed self-service personal fields (phone, address).
     """
     employee = get_employee_by_user_id(db, user_id)
-
+    if data.first_name is not None:
+        employee.first_name = data.first_name
+        
+    if data.last_name is not None:
+        employee.last_name = data.last_name
+        
     if data.phone is not None:
         employee.phone = data.phone
+        
     if data.address is not None:
         employee.address = data.address
 
     employee.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(employee)
+    return employee
+
+
+def update_hr_profile(
+    db: Session,
+    user: User,
+    data,
+) -> Employee:
+    """
+    Update the logged-in HR user's own personal profile.
+    """
+
+    if user.role != UserRole.HR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only HR users can update the HR profile.",
+        )
+
+    employee = get_or_create_hr_profile(
+        db=db,
+        user=user,
+    )
+
+    if data.first_name is not None:
+        employee.first_name = data.first_name
+
+    if data.last_name is not None:
+        employee.last_name = data.last_name
+
+    if data.phone is not None:
+        employee.phone = data.phone
+
+    if data.date_of_birth is not None:
+        employee.date_of_birth = data.date_of_birth
+
+    if data.address is not None:
+        employee.address = data.address
+
+    employee.updated_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(employee)
+
     return employee

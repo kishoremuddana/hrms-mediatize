@@ -82,62 +82,127 @@ def send_email(
         # Send the email
         smtp.send_message(message)
 
-
-def send_password_reset_email(
+def send_login_otp_email(
     recipient_email: str,
-    temporary_password: str,
-    login_url: str,
+    otp: str,
 ) -> None:
+    subject = "Your HRMS Login OTP"
+
+    html_content = f"""
+    <html>
+        <body style="
+            margin: 0;
+            padding: 30px;
+            background-color: #f4f6f8;
+            font-family: Arial, sans-serif;
+        ">
+
+            <div style="
+                max-width: 500px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                padding: 35px;
+                border-radius: 12px;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            ">
+
+                <h2 style="
+                    margin-bottom: 10px;
+                    color: #1f2937;
+                ">
+                    HRMS Login
+                </h2>
+
+                <p style="
+                    font-size: 16px;
+                    color: #555555;
+                ">
+                    Hello,
+                </p>
+
+                <p style="
+                    font-size: 16px;
+                    color: #555555;
+                    line-height: 1.5;
+                ">
+                    Use the following OTP to login to your HRMS account.
+                </p>
+
+                <div style="
+                    margin: 25px 0;
+                    padding: 18px;
+                    background-color: #f1f3f5;
+                    border-radius: 8px;
+                ">
+
+                    <div style="
+                        font-size: 32px;
+                        font-weight: bold;
+                        letter-spacing: 8px;
+                        color: #111827;
+                    ">
+                        {otp}
+                    </div>
+
+                </div>
+
+                <p style="
+                    font-size: 14px;
+                    color: #777777;
+                ">
+                    This OTP is valid for
+                    <strong>5 minutes</strong>.
+                </p>
+
+                <p style="
+                    font-size: 14px;
+                    color: #777777;
+                    line-height: 1.5;
+                ">
+                    If you did not request this OTP,
+                    please ignore this email.
+                </p>
+
+                <hr style="
+                    border: 0;
+                    border-top: 1px solid #eeeeee;
+                    margin: 25px 0;
+                ">
+
+                <p style="
+                    font-size: 13px;
+                    color: #999999;
+                    line-height: 1.5;
+                ">
+                    Regards,<br>
+                    <strong>HRMS Team</strong>
+                </p>
+
+            </div>
+
+        </body>
+    </html>
     """
-    Send a professional HTML password-reset email
-    containing the temporary password.
-    """
 
-    # Load HTML template
-    template = load_template("password_reset.html")
-
-    # Replace template placeholders
-    html_content = (
-        template
-        .replace(
-            "{{ employee_email }}",
-            recipient_email,
-        )
-        .replace(
-            "{{ temporary_password }}",
-            temporary_password,
-        )
-        .replace(
-            "{{ login_url }}",
-            login_url,
-        )
-    )
-
-    # Plain-text fallback
     plain_text_content = f"""
 Hello,
 
-Your Mediatize Tech HRMS password reset request has been approved by HR.
+Your OTP for logging into HRMS is:
 
-Account:
-{recipient_email}
+{otp}
 
-Temporary Password:
-{temporary_password}
+This OTP is valid for 5 minutes.
 
-Please log in to HRMS using the temporary password and change your password immediately.
-
-If you did not request a password reset, please contact your HR administrator.
+If you did not request this OTP, please ignore this email.
 
 Regards,
-Mediatize Tech HRMS
-Mediatize Tech Pvt. Ltd.
+HRMS Team
 """.strip()
 
-    # Send email
     send_email(
         recipient_email=recipient_email,
-        subject="Your Mediatize HRMS Password Reset",
+        subject=subject,
         html_content=html_content,
         plain_text_content=plain_text_content,
     )
@@ -146,7 +211,6 @@ Mediatize Tech Pvt. Ltd.
 def send_employee_welcome_email(
     recipient_email: str,
     employee_name: str,
-    temporary_password: str,
     login_url: str,
     employee_code: str = "",
 ) -> None:
@@ -156,13 +220,16 @@ def send_employee_welcome_email(
 
     template = load_template("employee_welcome.html")
 
-    clean_name = employee_name.strip() if employee_name and employee_name.strip() else "Employee"
+    clean_name = (
+        employee_name.strip()
+        if employee_name and employee_name.strip()
+        else "Employee"
+    )
 
     html_content = (
         template
         .replace("{{ employee_name }}", clean_name)
         .replace("{{ employee_email }}", recipient_email)
-        .replace("{{ temporary_password }}", temporary_password)
         .replace("{{ login_url }}", login_url)
         .replace("{{ employee_code }}", employee_code or "N/A")
     )
@@ -184,15 +251,9 @@ Employee Code:
 Email:
 {recipient_email}
 
-Temporary Password:
-{temporary_password}
-
+To access your HRMS account, use your registered email address and request an OTP.
 Login to HRMS:
 {login_url}
-
-For security reasons, please change your temporary password after signing in for the first time.
-
-If you did not expect this account, please contact HR.
 
 Regards,
 Mediatize Tech HRMS
@@ -201,7 +262,7 @@ Mediatize Tech Pvt. Ltd.
 
     send_email(
         recipient_email=recipient_email,
-        subject="Welcome to Mediatize Tech HRMS — Your Account Details",
+        subject="Welcome to Mediatize Tech HRMS — Your Account Created",
         html_content=html_content,
         plain_text_content=plain_text_content,
     )
@@ -562,4 +623,4 @@ Mediatize Tech Pvt. Ltd.
         plain_text_content=plain_text_content,
     )
 
-
+

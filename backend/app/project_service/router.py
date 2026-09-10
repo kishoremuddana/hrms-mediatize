@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.authentication_service.dependencies import (
     get_current_hr,
-    get_current_user_with_password_check,
+    get_current_user,
 )
 from app.authentication_service.models import User
 from app.core.database import get_db
@@ -55,7 +55,7 @@ roles_router = APIRouter(prefix="/project-roles", tags=["Project Roles"])
 @roles_router.get("", response_model=List[ProjectRoleResponse])
 def list_project_roles(
     active_only: bool = Query(True, description="Filter active roles only"),
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """List all project roles (Accessible to all authenticated users for selection)."""
@@ -102,7 +102,7 @@ def get_project_dashboard_metrics(
 # =========================================================
 @router.get("/my-projects", response_model=List[EmployeeProjectResponse])
 def get_my_assigned_projects(
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Retrieve projects assigned to the current employee (Employee Self-Service)."""
@@ -115,7 +115,7 @@ def get_my_assigned_projects(
 @router.get("/my-projects/{id}")
 def get_my_assigned_project_details(
     id: int,
-    current_user: User = Depends(get_current_user_with_password_check),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Retrieve details for a specific project assigned to current employee (IDOR Protected)."""

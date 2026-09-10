@@ -44,10 +44,21 @@ class EmployeeUpdate(BaseModel):
 # ============================================================
 
 class EmployeeSelfUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = Field(None, max_length=255)
+# ============================================================
+# HR Own Profile Update
+# ============================================================
 
-
+class HROwnProfileUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    date_of_birth: Optional[date] = None
+    address: Optional[str] = Field(None, max_length=255)
+    
 # ============================================================
 # Employee Detail Response Schema
 # ============================================================

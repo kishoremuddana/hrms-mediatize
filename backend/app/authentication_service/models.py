@@ -3,22 +3,16 @@ from enum import Enum
 
 from sqlalchemy import (
     Boolean,
+    Column,
     DateTime,
     Enum as SQLEnum,
-    ForeignKey,
     Index,
+    Integer,
     String,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-
-
-class PasswordResetStatus(str, Enum):
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    EXPIRED = "EXPIRED"
 
 
 class UserRole(str, Enum):
@@ -48,11 +42,6 @@ class User(Base):
         index=True,
     )
 
-    password_hash: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-    )
-
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole, name="user_role"),
         nullable=False,
@@ -62,12 +51,6 @@ class User(Base):
         Boolean,
         nullable=False,
         default=True,
-    )
-
-    must_change_password: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -87,41 +70,21 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True,
     )
-
-
-class PasswordResetRequest(Base):
-    __tablename__ = "password_reset_requests"
-
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        autoincrement=True,
+    otp_hash = Column(
+        String(255),
+        nullable=True,
     )
 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False,
-        index=True,
-    )
-
-    status: Mapped[PasswordResetStatus] = mapped_column(
-        SQLEnum(
-            PasswordResetStatus,
-            name="password_reset_status",
-        ),
-        nullable=False,
-        default=PasswordResetStatus.PENDING,
-    )
-
-    requested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-    reviewed_at: Mapped[datetime | None] = mapped_column(
+    otp_expires_at = Column(
         DateTime(timezone=True),
         nullable=True,
     )
 
+    otp_attempts = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
 
 Index("ix_users_role", User.role)
+

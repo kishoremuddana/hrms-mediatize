@@ -524,6 +524,7 @@ def apply_leave(
         reference_id=str(leave_req.id),
         reference_type="LEAVE",
     )
+    db.commit()
 
     # Notify HR via Email
     hr_users = db.scalars(
@@ -752,7 +753,68 @@ def reject_leave(
 
     return build_leave_response(leave_req)
 
+def revoke_leave(
+    db: Session,
+    leave_id: int,
+    review_in: LeaveRequestReview,
+    current_user: User,
+    ip_address: Optional[str] = None,
+) -> LeaveRequestResponse:
+    leave_req = db.get(LeaveRequest, leave_id)
 
+    if not leave_req:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Leave request not found.",
+        )
+
+    # Only APPROVED or REJECTED requests can be revoked
+    if leave_req.status not in [
+        LeaveStatus.APPROVED,
+        LeaveStatus.REJECTED,
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only APPROVED or REJECTED leave requests can be revoked. "
+                f"Current status: {leave_req.status.value}"
+            ),
+        )
+
+    # If the leave was approved, return the used days
+    # back to the employee's available balance.
+    if leave_req.status == LeaveStatus.APPROVED:
+        balance = get_or_create_leave_balance(
+            db=db,
+            employee_id=leave_req.employee_id,
+            leave_type_id=leave_req.leave_type_id,
+            year=leave_req.start_date.year,
+            lock=True,
+        )
+
+        balance.used_days = max(
+            Decimal("0.00"),
+            balance.used_days - leave_req.duration,
+        )
+
+    # Change status to REVOKED
+    leave_req.status = LeaveStatus.REVOKED
+    leave_req.hr_remarks = review_in.hr_remarks
+    leave_req.reviewed_by = current_user.id
+    leave_req.reviewed_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(leave_req)
+
+    # Audit log
+    create_audit_log(
+        db=db,
+        action=AuditAction.LEAVE_REVOKED,
+        user_id=current_user.id,
+        ip_address=ip_address,
+    )
+
+    return build_leave_response(leave_req)
 
 # ==========================================
 # QUERY SERVICES
