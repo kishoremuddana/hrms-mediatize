@@ -1,127 +1,487 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Welcome to HRMS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Mediatize Tech HRMS</title>
 </head>
 
 <body style="
     margin: 0;
-    padding: 30px;
-    background-color: #f4f6f8;
-    font-family: Arial, sans-serif;
+    padding: 0;
+    background-color: #f5f7f6;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #1f2937;
+    -webkit-font-smoothing: antialiased;
 ">
 
-    <div style="
-        max-width: 550px;
-        margin: 0 auto;
-        background-color: #ffffff;
-        padding: 35px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    ">
+    <!-- Main Background -->
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+        style="
+            background-color: #f5f7f6;
+            padding: 40px 15px;
+        "
+    >
+        <tr>
+            <td align="center">
 
-        <h2 style="
-            color: #1f2937;
-            margin-bottom: 10px;
-        ">
-            Welcome to Mediatize Tech HRMS
-        </h2>
+                <!-- Email Container -->
+                <table
+                    width="600"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    style="
+                        width: 100%;
+                        max-width: 600px;
+                        background-color: #ffffff;
+                        border-radius: 14px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 18px rgba(23, 61, 40, 0.08);
+                    "
+                >
 
-        <p style="
-            font-size: 16px;
-            color: #555555;
-        ">
-            Hello <strong>{{ employee_name }}</strong>,
-        </p>
+                    <!-- ============================= -->
+                    <!-- HEADER -->
+                    <!-- ============================= -->
 
-        <p style="
-            font-size: 15px;
-            color: #555555;
-            line-height: 1.6;
-        ">
-            Your employee account has been successfully created.
-            You can now access the HRMS portal using your registered
-            email address and OTP.
-        </p>
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                background-color: #173d28;
+                                padding: 30px 25px;
+                            "
+                        >
 
-        <div style="
-            background-color: #f1f3f5;
-            padding: 18px;
-            border-radius: 8px;
-            margin: 25px 0;
-        ">
+                            <h1 style="
+                                margin: 0;
+                                color: #ffffff;
+                                font-size: 26px;
+                                line-height: 1.3;
+                                font-weight: 700;
+                                letter-spacing: 0.3px;
+                            ">
+                                Mediatize Tech
+                            </h1>
 
-            <p style="margin: 8px 0;">
-                <strong>Employee ID:</strong>
-                {{ employee_code }}
-            </p>
+                            <p style="
+                                margin: 8px 0 0;
+                                color: #d8e5dc;
+                                font-size: 14px;
+                                line-height: 1.5;
+                                font-weight: 500;
+                            ">
+                                Human Resource Management System
+                            </p>
 
-            <p style="margin: 8px 0;">
-                <strong>Email:</strong>
-                {{ employee_email }}
-            </p>
+                        </td>
+                    </tr>
 
-        </div>
 
-        <p style="
-            font-size: 15px;
-            color: #555555;
-            line-height: 1.6;
-        ">
-            Click the button below to access the HRMS login page.
-            Enter your registered email address and request an OTP
-            to securely sign in.
-        </p>
+                    <!-- ============================= -->
+                    <!-- WELCOME SECTION -->
+                    <!-- ============================= -->
 
-        <div style="
-            text-align: center;
-            margin: 30px 0;
-        ">
+                    <tr>
+                        <td
+                            style="
+                                padding: 40px 40px 20px;
+                            "
+                        >
 
-            <a
-                href="{{ login_url }}"
-                style="
-                    display: inline-block;
-                    padding: 14px 28px;
-                    background-color: #2563eb;
-                    color: #ffffff;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-size: 15px;
-                    font-weight: bold;
-                "
-            >
-                Login to HRMS
-            </a>
+                            <!-- Welcome Badge -->
+                            <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            background-color: #e8f4ec;
+                                            color: #28613d;
+                                            padding: 7px 13px;
+                                            border-radius: 20px;
+                                            font-size: 12px;
+                                            font-weight: 700;
+                                            letter-spacing: 0.4px;
+                                        "
+                                    >
+                                        EMPLOYEE ACCOUNT
+                                    </td>
+                                </tr>
+                            </table>
 
-        </div>
 
-        <p style="
-            font-size: 13px;
-            color: #777777;
-            line-height: 1.5;
-        ">
-            If you did not expect this account, please contact your
-            HR administrator.
-        </p>
+                            <h2 style="
+                                margin: 18px 0 12px;
+                                color: #173d28;
+                                font-size: 25px;
+                                line-height: 1.3;
+                                font-weight: 700;
+                            ">
+                                Welcome to Mediatize Tech HRMS
+                            </h2>
 
-        <hr style="
-            border: 0;
-            border-top: 1px solid #eeeeee;
-            margin: 25px 0;
-        ">
 
-        <p style="
-            font-size: 13px;
-            color: #999999;
-            text-align: center;
-        ">
-            Regards,<br>
-            <strong>HRMS Team</strong>
-        </p>
+                            <p style="
+                                margin: 0 0 15px;
+                                color: #374151;
+                                font-size: 16px;
+                                line-height: 1.7;
+                            ">
+                                Hello <strong>{{ employee_name }}</strong>,
+                            </p>
 
-    </div>
+
+                            <p style="
+                                margin: 0;
+                                color: #555555;
+                                font-size: 15px;
+                                line-height: 1.7;
+                            ">
+                                Your employee account has been successfully
+                                created. You can now access the HRMS portal
+                                using your registered email address and OTP.
+                            </p>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- EMPLOYEE INFORMATION -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 10px 40px 25px;
+                            "
+                        >
+
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="
+                                    background-color: #f7faf8;
+                                    border: 1px solid #dfe7e2;
+                                    border-radius: 10px;
+                                "
+                            >
+
+                                <!-- Card Header -->
+                                <tr>
+                                    <td
+                                        colspan="2"
+                                        style="
+                                            padding: 18px 20px 10px;
+                                        "
+                                    >
+                                        <p style="
+                                            margin: 0;
+                                            color: #173d28;
+                                            font-size: 13px;
+                                            font-weight: 700;
+                                            letter-spacing: 0.5px;
+                                            text-transform: uppercase;
+                                        ">
+                                            Your Account Details
+                                        </p>
+                                    </td>
+                                </tr>
+
+
+                                <!-- Divider -->
+                                <tr>
+                                    <td
+                                        colspan="2"
+                                        style="
+                                            padding: 0 20px;
+                                        "
+                                    >
+                                        <div style="
+                                            height: 1px;
+                                            background-color: #dfe7e2;
+                                        "></div>
+                                    </td>
+                                </tr>
+
+
+                                <!-- Employee ID -->
+                                <tr>
+                                    <td
+                                        width="40%"
+                                        style="
+                                            padding: 16px 20px 8px;
+                                            color: #6b7280;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                        "
+                                    >
+                                        Employee ID
+                                    </td>
+
+                                    <td
+                                        width="60%"
+                                        style="
+                                            padding: 16px 20px 8px;
+                                            color: #173d28;
+                                            font-size: 14px;
+                                            font-weight: 700;
+                                        "
+                                    >
+                                        {{ employee_code }}
+                                    </td>
+                                </tr>
+
+
+                                <!-- Email -->
+                                <tr>
+                                    <td
+                                        width="40%"
+                                        style="
+                                            padding: 8px 20px 18px;
+                                            color: #6b7280;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                        "
+                                    >
+                                        Registered Email
+                                    </td>
+
+                                    <td
+                                        width="60%"
+                                        style="
+                                            padding: 8px 20px 18px;
+                                            color: #374151;
+                                            font-size: 14px;
+                                            font-weight: 600;
+                                            word-break: break-word;
+                                        "
+                                    >
+                                        {{ employee_email }}
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- LOGIN INFORMATION -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 10px;
+                            "
+                        >
+
+                            <h3 style="
+                                margin: 0 0 10px;
+                                color: #173d28;
+                                font-size: 17px;
+                                font-weight: 700;
+                            ">
+                                Secure Login
+                            </h3>
+
+
+                            <p style="
+                                margin: 0;
+                                color: #555555;
+                                font-size: 14px;
+                                line-height: 1.7;
+                            ">
+                                Click the button below to access the HRMS
+                                login page. Enter your registered email
+                                address and request an OTP to securely
+                                sign in.
+                            </p>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- CTA BUTTON -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                padding: 25px 40px 30px;
+                            "
+                        >
+
+                            <a
+                                href="{{ login_url }}"
+                                target="_blank"
+                                style="
+                                    display: inline-block;
+                                    background-color: #28613d;
+                                    color: #ffffff;
+                                    text-decoration: none;
+                                    padding: 14px 32px;
+                                    border-radius: 8px;
+                                    font-size: 15px;
+                                    font-weight: 700;
+                                    letter-spacing: 0.2px;
+                                "
+                            >
+                                Login to HRMS
+                            </a>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- SECURITY NOTE -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 30px;
+                            "
+                        >
+
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="
+                                    background-color: #e8f4ec;
+                                    border-left: 4px solid #28613d;
+                                    border-radius: 6px;
+                                "
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 15px 16px;
+                                        "
+                                    >
+
+                                        <p style="
+                                            margin: 0 0 5px;
+                                            color: #173d28;
+                                            font-size: 13px;
+                                            font-weight: 700;
+                                        ">
+                                            Secure Access
+                                        </p>
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #374151;
+                                            font-size: 13px;
+                                            line-height: 1.6;
+                                        ">
+                                            Your HRMS account uses OTP-based
+                                            authentication. Never share your
+                                            OTP with anyone.
+                                        </p>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- HELP / SUPPORT -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 30px;
+                            "
+                        >
+
+                            <p style="
+                                margin: 0;
+                                color: #6b7280;
+                                font-size: 13px;
+                                line-height: 1.6;
+                            ">
+                                If you did not expect this account, please
+                                contact your HR administrator.
+                            </p>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ============================= -->
+                    <!-- FOOTER -->
+                    <!-- ============================= -->
+
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                background-color: #f7faf8;
+                                border-top: 1px solid #dfe7e2;
+                                padding: 25px 30px;
+                            "
+                        >
+
+                            <p style="
+                                margin: 0 0 6px;
+                                color: #173d28;
+                                font-size: 14px;
+                                font-weight: 700;
+                            ">
+                                Mediatize Tech HRMS
+                            </p>
+
+
+                            <p style="
+                                margin: 0 0 8px;
+                                color: #6b7280;
+                                font-size: 12px;
+                            ">
+                                Mediatize Tech Pvt. Ltd.
+                            </p>
+
+
+                            <p style="
+                                margin: 0;
+                                color: #9ca3af;
+                                font-size: 11px;
+                                line-height: 1.5;
+                            ">
+                                This is an automated email notification from
+                                Mediatize Tech HRMS. Please do not reply
+                                directly to this message.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

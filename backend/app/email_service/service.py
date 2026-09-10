@@ -86,104 +86,16 @@ def send_login_otp_email(
     recipient_email: str,
     otp: str,
 ) -> None:
-    subject = "Your HRMS Login OTP"
-
-    html_content = f"""
-    <html>
-        <body style="
-            margin: 0;
-            padding: 30px;
-            background-color: #f4f6f8;
-            font-family: Arial, sans-serif;
-        ">
-
-            <div style="
-                max-width: 500px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                padding: 35px;
-                border-radius: 12px;
-                text-align: center;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            ">
-
-                <h2 style="
-                    margin-bottom: 10px;
-                    color: #1f2937;
-                ">
-                    HRMS Login
-                </h2>
-
-                <p style="
-                    font-size: 16px;
-                    color: #555555;
-                ">
-                    Hello,
-                </p>
-
-                <p style="
-                    font-size: 16px;
-                    color: #555555;
-                    line-height: 1.5;
-                ">
-                    Use the following OTP to login to your HRMS account.
-                </p>
-
-                <div style="
-                    margin: 25px 0;
-                    padding: 18px;
-                    background-color: #f1f3f5;
-                    border-radius: 8px;
-                ">
-
-                    <div style="
-                        font-size: 32px;
-                        font-weight: bold;
-                        letter-spacing: 8px;
-                        color: #111827;
-                    ">
-                        {otp}
-                    </div>
-
-                </div>
-
-                <p style="
-                    font-size: 14px;
-                    color: #777777;
-                ">
-                    This OTP is valid for
-                    <strong>5 minutes</strong>.
-                </p>
-
-                <p style="
-                    font-size: 14px;
-                    color: #777777;
-                    line-height: 1.5;
-                ">
-                    If you did not request this OTP,
-                    please ignore this email.
-                </p>
-
-                <hr style="
-                    border: 0;
-                    border-top: 1px solid #eeeeee;
-                    margin: 25px 0;
-                ">
-
-                <p style="
-                    font-size: 13px;
-                    color: #999999;
-                    line-height: 1.5;
-                ">
-                    Regards,<br>
-                    <strong>HRMS Team</strong>
-                </p>
-
-            </div>
-
-        </body>
-    </html>
     """
+    Send a professional HTML OTP email for HRMS login.
+    """
+
+    template = load_template("login_otp.html")
+
+    html_content = (
+        template
+        .replace("{{ otp }}", otp)
+    )
 
     plain_text_content = f"""
 Hello,
@@ -197,12 +109,13 @@ This OTP is valid for 5 minutes.
 If you did not request this OTP, please ignore this email.
 
 Regards,
-HRMS Team
+Mediatize Tech HRMS
+Mediatize Tech Pvt. Ltd.
 """.strip()
 
     send_email(
         recipient_email=recipient_email,
-        subject=subject,
+        subject="Your HRMS Login OTP",
         html_content=html_content,
         plain_text_content=plain_text_content,
     )

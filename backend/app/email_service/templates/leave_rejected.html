@@ -9,20 +9,33 @@
 <body style="
     margin: 0;
     padding: 0;
-    background-color: #f4f6f8;
+    background-color: #f5f7f6;
     font-family: Arial, Helvetica, sans-serif;
+    color: #1f2937;
     -webkit-font-smoothing: antialiased;
 ">
+
+    <!-- ========================================== -->
+    <!-- EMAIL BACKGROUND -->
+    <!-- ========================================== -->
 
     <table
         width="100%"
         cellpadding="0"
         cellspacing="0"
         border="0"
-        style="background-color: #f4f6f8; padding: 40px 15px;"
+        style="
+            width: 100%;
+            background-color: #f5f7f6;
+            padding: 40px 15px;
+        "
     >
         <tr>
             <td align="center">
+
+                <!-- ========================================== -->
+                <!-- MAIN EMAIL CONTAINER -->
+                <!-- ========================================== -->
 
                 <table
                     width="600"
@@ -30,76 +43,139 @@
                     cellspacing="0"
                     border="0"
                     style="
-                        max-width: 600px;
                         width: 100%;
+                        max-width: 600px;
                         background-color: #ffffff;
-                        border-radius: 10px;
+                        border-radius: 14px;
                         overflow: hidden;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                        box-shadow: 0 4px 18px rgba(23, 61, 40, 0.08);
                     "
                 >
 
-                    <!-- Header -->
+                    <!-- ========================================== -->
+                    <!-- BRAND HEADER -->
+                    <!-- ========================================== -->
+
                     <tr>
                         <td
-                            align="center"
                             style="
-                                background-color: #1f2937;
-                                padding: 30px 20px;
+                                background-color: #173d28;
+                                padding: 30px 35px;
                             "
                         >
-                            <h1 style="
-                                margin: 0;
-                                color: #ffffff;
-                                font-size: 26px;
-                                font-weight: 700;
-                                letter-spacing: 0.5px;
-                            ">
-                                Mediatize Tech
-                            </h1>
 
-                            <p style="
-                                margin: 8px 0 0;
-                                color: #d1d5db;
-                                font-size: 14px;
-                                font-weight: 500;
-                            ">
-                                Human Resource Management System
-                            </p>
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                            >
+                                <tr>
+
+                                    <td align="left">
+
+                                        <p style="
+                                            margin: 0 0 5px;
+                                            color: #ffffff;
+                                            font-size: 22px;
+                                            font-weight: 700;
+                                            line-height: 1.3;
+                                        ">
+                                            Mediatize Tech
+                                        </p>
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #d8e5dc;
+                                            font-size: 13px;
+                                            line-height: 1.5;
+                                            font-weight: 500;
+                                        ">
+                                            Human Resource Management System
+                                        </p>
+
+                                    </td>
+
+                                    <td
+                                        align="right"
+                                        valign="middle"
+                                    >
+                                        <span style="
+                                            display: inline-block;
+                                            padding: 7px 11px;
+                                            background-color: rgba(255,255,255,0.10);
+                                            color: #ffffff;
+                                            border: 1px solid rgba(255,255,255,0.25);
+                                            border-radius: 20px;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                            letter-spacing: 0.5px;
+                                        ">
+                                            LEAVE UPDATE
+                                        </span>
+                                    </td>
+
+                                </tr>
+                            </table>
+
                         </td>
                     </tr>
 
-                    <!-- Main Content Body -->
+
+                    <!-- ========================================== -->
+                    <!-- STATUS / INTRO -->
+                    <!-- ========================================== -->
+
                     <tr>
-                        <td style="padding: 40px 40px 30px;">
+                        <td
+                            style="
+                                padding: 38px 40px 20px;
+                            "
+                        >
 
-                            <div style="margin-bottom: 15px;">
-                                <span style="
-                                    display: inline-block;
-                                    background-color: #fee2e2;
-                                    color: #991b1b;
-                                    font-size: 12px;
-                                    font-weight: 700;
-                                    padding: 4px 12px;
-                                    border-radius: 12px;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.5px;
-                                ">
-                                    REJECTED
-                                </span>
-                            </div>
+                            <!-- Rejected Badge -->
 
-                            <h2 style="
-                                margin: 0 0 16px;
-                                color: #111827;
-                                font-size: 22px;
+                            <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="margin-bottom: 16px;"
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            background-color: #fee2e2;
+                                            color: #991b1b;
+                                            padding: 8px 14px;
+                                            border-radius: 20px;
+                                            font-size: 11px;
+                                            font-weight: 700;
+                                            letter-spacing: 0.5px;
+                                        "
+                                    >
+                                        ✕ REJECTED
+                                    </td>
+                                </tr>
+                            </table>
+
+
+                            <!-- Main Heading -->
+
+                            <h1 style="
+                                margin: 0 0 15px;
+                                color: #173d28;
+                                font-size: 25px;
+                                line-height: 1.35;
                                 font-weight: 700;
                             ">
                                 Leave Request Update
-                            </h2>
+                            </h1>
+
+
+                            <!-- Greeting -->
 
                             <p style="
-                                margin: 0 0 15px;
+                                margin: 0 0 14px;
                                 color: #374151;
                                 font-size: 15px;
                                 line-height: 1.7;
@@ -107,145 +183,434 @@
                                 Hello <strong>{{ employee_name }}</strong>,
                             </p>
 
+
                             <p style="
-                                margin: 0 0 24px;
-                                color: #374151;
+                                margin: 0;
+                                color: #555555;
                                 font-size: 15px;
                                 line-height: 1.7;
                             ">
-                                Your leave request has been reviewed by HR and was not approved. Below are the details of the decision:
+                                Your leave request has been reviewed by HR
+                                and was not approved. Below are the details
+                                of the decision.
                             </p>
 
-                            <!-- Leave Details Card -->
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- DECISION STATUS CARD -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 10px 40px 25px;
+                            "
+                        >
+
                             <table
                                 width="100%"
                                 cellpadding="0"
                                 cellspacing="0"
                                 border="0"
                                 style="
-                                    background-color: #f9fafb;
-                                    border: 1px solid #e5e7eb;
-                                    border-radius: 8px;
-                                    padding: 20px;
-                                    margin-bottom: 25px;
+                                    background-color: #fff7f7;
+                                    border: 1px solid #f3d4d4;
+                                    border-radius: 10px;
                                 "
                             >
                                 <tr>
-                                    <td style="padding-bottom: 12px; font-size: 14px; color: #6b7280; width: 140px; font-weight: 600;">
-                                        Leave Type:
-                                    </td>
-                                    <td style="padding-bottom: 12px; font-size: 14px; color: #111827; font-weight: 700;">
-                                        {{ leave_type }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding-bottom: 12px; font-size: 14px; color: #6b7280; font-weight: 600;">
-                                        Dates:
-                                    </td>
-                                    <td style="padding-bottom: 12px; font-size: 14px; color: #111827; font-weight: 600;">
-                                        {{ start_date }} to {{ end_date }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="font-size: 14px; color: #6b7280; font-weight: 600; vertical-align: top;">
-                                        HR Remarks:
-                                    </td>
-                                    <td style="font-size: 14px; color: #dc2626; line-height: 1.5; vertical-align: top; font-weight: 600;">
-                                        {{ hr_remarks }}
+                                    <td
+                                        align="center"
+                                        style="
+                                            padding: 18px 20px;
+                                        "
+                                    >
+
+                                        <p style="
+                                            margin: 0 0 5px;
+                                            color: #991b1b;
+                                            font-size: 11px;
+                                            font-weight: 700;
+                                            letter-spacing: 0.6px;
+                                            text-transform: uppercase;
+                                        ">
+                                            Leave Status
+                                        </p>
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #7f1d1d;
+                                            font-size: 18px;
+                                            font-weight: 700;
+                                        ">
+                                            Not Approved
+                                        </p>
+
                                     </td>
                                 </tr>
                             </table>
 
-                            <!-- CTA Button -->
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- LEAVE DETAILS -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 28px;
+                            "
+                        >
+
+                            <p style="
+                                margin: 0 0 12px;
+                                color: #173d28;
+                                font-size: 13px;
+                                font-weight: 700;
+                                letter-spacing: 0.5px;
+                                text-transform: uppercase;
+                            ">
+                                Leave Details
+                            </p>
+
+
                             <table
                                 width="100%"
                                 cellpadding="0"
                                 cellspacing="0"
                                 border="0"
-                                style="margin-bottom: 25px;"
+                                style="
+                                    background-color: #f7faf8;
+                                    border: 1px solid #dfe7e2;
+                                    border-radius: 10px;
+                                "
                             >
+
+                                <!-- Leave Type -->
+
                                 <tr>
-                                    <td align="center">
-                                        <a
-                                            href="{{ login_url }}"
-                                            target="_blank"
-                                            style="
-                                                display: inline-block;
-                                                background-color: #2563eb;
-                                                color: #ffffff;
-                                                text-decoration: none;
-                                                font-size: 15px;
-                                                font-weight: 600;
-                                                padding: 12px 28px;
-                                                border-radius: 6px;
-                                            "
-                                        >
-                                            View Leave Dashboard
-                                        </a>
+                                    <td
+                                        width="42%"
+                                        style="
+                                            padding: 16px 18px 10px;
+                                            color: #6b7280;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                        "
+                                    >
+                                        Leave Type
+                                    </td>
+
+                                    <td
+                                        width="58%"
+                                        style="
+                                            padding: 16px 18px 10px;
+                                            color: #374151;
+                                            font-size: 14px;
+                                            font-weight: 700;
+                                        "
+                                    >
+                                        {{ leave_type }}
                                     </td>
                                 </tr>
+
+
+                                <!-- Dates -->
+
+                                <tr>
+                                    <td style="
+                                        padding: 10px 18px 18px;
+                                        color: #6b7280;
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                    ">
+                                        Dates
+                                    </td>
+
+                                    <td style="
+                                        padding: 10px 18px 18px;
+                                        color: #374151;
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                    ">
+                                        {{ start_date }} to {{ end_date }}
+                                    </td>
+                                </tr>
+
                             </table>
-
-                            <!-- Copyable URL Box -->
-                            <p style="
-                                margin: 0 0 8px;
-                                color: #6b7280;
-                                font-size: 13px;
-                            ">
-                                If the button above does not work, copy and paste this URL into your browser:
-                            </p>
-
-                            <div style="
-                                background-color: #f3f4f6;
-                                border: 1px solid #e5e7eb;
-                                border-radius: 6px;
-                                padding: 10px 12px;
-                                word-break: break-all;
-                                font-family: monospace;
-                                font-size: 13px;
-                                color: #1f2937;
-                            ">
-                                {{ login_url }}
-                            </div>
 
                         </td>
                     </tr>
 
-                    <!-- Footer -->
+
+                    <!-- ========================================== -->
+                    <!-- HR REMARKS -->
+                    <!-- ========================================== -->
+
                     <tr>
                         <td
                             style="
-                                background-color: #f9fafb;
-                                border-top: 1px solid #e5e7eb;
-                                padding: 25px 40px;
-                                text-align: center;
+                                padding: 0 40px 28px;
                             "
                         >
+
                             <p style="
-                                margin: 0 0 6px;
+                                margin: 0 0 12px;
+                                color: #173d28;
+                                font-size: 13px;
+                                font-weight: 700;
+                                letter-spacing: 0.5px;
+                                text-transform: uppercase;
+                            ">
+                                HR Remarks
+                            </p>
+
+
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="
+                                    background-color: #fff7f7;
+                                    border: 1px solid #f3d4d4;
+                                    border-left: 4px solid #dc2626;
+                                    border-radius: 0 10px 10px 0;
+                                "
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 18px 20px;
+                                        "
+                                    >
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #991b1b;
+                                            font-size: 14px;
+                                            line-height: 1.7;
+                                            font-weight: 600;
+                                        ">
+                                            {{ hr_remarks }}
+                                        </p>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- INFORMATION MESSAGE -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 25px;
+                            "
+                        >
+
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="
+                                    background-color: #f7faf8;
+                                    border-left: 4px solid #28613d;
+                                    border-radius: 0 8px 8px 0;
+                                "
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 15px 16px;
+                                        "
+                                    >
+
+                                        <p style="
+                                            margin: 0 0 5px;
+                                            color: #173d28;
+                                            font-size: 13px;
+                                            font-weight: 700;
+                                        ">
+                                            Need More Information?
+                                        </p>
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #6b7280;
+                                            font-size: 13px;
+                                            line-height: 1.6;
+                                        ">
+                                            You can review your leave
+                                            information and other HRMS
+                                            details from your dashboard.
+                                        </p>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- CTA -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                padding: 5px 40px 30px;
+                            "
+                        >
+
+                            <p style="
+                                margin: 0 0 18px;
                                 color: #6b7280;
                                 font-size: 13px;
-                                font-weight: 600;
+                                line-height: 1.6;
+                            ">
+                                Sign in to your HRMS portal to view your
+                                complete leave information.
+                            </p>
+
+
+                            <a
+                                href="{{ login_url }}"
+                                target="_blank"
+                                style="
+                                    display: inline-block;
+                                    background-color: #28613d;
+                                    color: #ffffff;
+                                    text-decoration: none;
+                                    padding: 14px 30px;
+                                    border-radius: 8px;
+                                    font-size: 14px;
+                                    font-weight: 700;
+                                    line-height: 1.2;
+                                "
+                            >
+                                View Leave Dashboard
+                            </a>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- FALLBACK URL -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            style="
+                                padding: 0 40px 30px;
+                            "
+                        >
+
+                            <table
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="
+                                    background-color: #f0f5f2;
+                                    border: 1px solid #dfe7e2;
+                                    border-radius: 8px;
+                                "
+                            >
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 14px 16px;
+                                        "
+                                    >
+
+                                        <p style="
+                                            margin: 0 0 6px;
+                                            color: #6b7280;
+                                            font-size: 11px;
+                                            font-weight: 600;
+                                        ">
+                                            HRMS PORTAL
+                                        </p>
+
+                                        <p style="
+                                            margin: 0;
+                                            color: #28613d;
+                                            font-size: 12px;
+                                            line-height: 1.5;
+                                            word-break: break-all;
+                                        ">
+                                            {{ login_url }}
+                                        </p>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+
+                    <!-- ========================================== -->
+                    <!-- FOOTER -->
+                    <!-- ========================================== -->
+
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                background-color: #f7faf8;
+                                border-top: 1px solid #dfe7e2;
+                                padding: 25px 30px;
+                            "
+                        >
+
+                            <p style="
+                                margin: 0 0 6px;
+                                color: #173d28;
+                                font-size: 14px;
+                                font-weight: 700;
                             ">
                                 Mediatize Tech HRMS
                             </p>
 
+
                             <p style="
-                                margin: 0 0 10px;
-                                color: #9ca3af;
+                                margin: 0 0 8px;
+                                color: #6b7280;
                                 font-size: 12px;
                             ">
                                 Mediatize Tech Pvt. Ltd.
                             </p>
 
+
                             <p style="
                                 margin: 0;
                                 color: #9ca3af;
                                 font-size: 11px;
-                                line-height: 1.4;
+                                line-height: 1.5;
                             ">
-                                This is an automated email notification from Mediatize Tech HRMS. Please do not reply directly to this message.
+                                This is an automated email notification from
+                                Mediatize Tech HRMS. Please do not reply
+                                directly to this message.
                             </p>
+
                         </td>
                     </tr>
 

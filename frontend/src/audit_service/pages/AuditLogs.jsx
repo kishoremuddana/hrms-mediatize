@@ -224,6 +224,30 @@ export default function AuditLogs() {
   const currentPageEvents = logs.length;
 
   return (
+  <>
+    <style>
+      {`
+        @media (max-width: 900px) {
+          .audit-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .audit-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .audit-summary-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}
+    </style>
+
     <AppLayout title="System Audit Logs">
       <div style={styles.page}>
         <BackToDashboard to="/hr/dashboard" role="HR" />
@@ -267,7 +291,7 @@ export default function AuditLogs() {
         {/* =====================================================
             SUMMARY CARDS
         ===================================================== */}
-        <section style={styles.summaryGrid}>
+        <section className="audit-summary-grid" style={styles.summaryGrid}>
           <SummaryCard
             icon={FileClock}
             label="Total Events"
@@ -764,6 +788,8 @@ export default function AuditLogs() {
         </div>
       </div>
     </AppLayout>
+  </>
+    
   );
 }
 
@@ -926,10 +952,11 @@ const styles = {
 
   summaryGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: "14px",
     marginBottom: "18px",
+    width: "100%",
+    boxSizing: "border-box",
   },
 
   summaryCard: {
@@ -1540,3 +1567,4 @@ const styles = {
     fontSize: "11px",
   },
 };
+

@@ -374,12 +374,29 @@ def assign_employee_to_project(db: Session, project_id: int, schema: ProjectAssi
     if employee.user and employee.user.email:
         try:
             assigned_by_user = db.get(User, user_id) if user_id else None
-            assigned_by_name = (
-                f"{assigned_by_user.employee.first_name} {assigned_by_user.employee.last_name}".strip()
-                if (assigned_by_user and assigned_by_user.employee)
-                else (assigned_by_user.username if assigned_by_user else "HR Department")
-            )
-            emp_full_name = f"{employee.first_name} {employee.last_name}".strip()
+            
+            # Get the HR employee profile using the user_id
+            assigned_by_employee = None
+
+            if assigned_by_user:
+                assigned_by_employee = db.scalar(
+                    select(Employee).where(
+                        Employee.user_id == assigned_by_user.id,
+                        Employee.deleted_at.is_(None),
+                    )
+                )
+
+            if assigned_by_employee:
+                assigned_by_name = (
+                    f"{assigned_by_employee.first_name} "
+                    f"{assigned_by_employee.last_name}"
+                ).strip()
+            else:
+                assigned_by_name = "HR Department"
+
+            emp_full_name = (
+                f"{employee.first_name} {employee.last_name}"
+            ).strip()
 
             send_project_assignment_email(
                 recipient_email=employee.user.email,
@@ -387,14 +404,30 @@ def assign_employee_to_project(db: Session, project_id: int, schema: ProjectAssi
                 project_name=project.name,
                 project_role=role.name,
                 project_description=project.description,
-                start_date=str(project.start_date) if project.start_date else None,
-                assigned_date=str(assignment.assigned_date) if assignment.assigned_date else None,
+                start_date=(
+                    str(project.start_date)
+                    if project.start_date
+                    else None
+                ),
+                assigned_date=(
+                    str(assignment.assigned_date)
+                    if assignment.assigned_date
+                    else None
+                ),
                 assigned_by_name=assigned_by_name,
                 login_url=settings.FRONTEND_URL,
             )
+
+            logger.info(
+                f"Project assignment email sent successfully to "
+                f"{employee.user.email}"
+            )
+
         except Exception as e:
             logger.error(
-                f"Failed to send project assignment email to {employee.user.email}: {e}"
+                f"Failed to send project assignment email to "
+                f"{employee.user.email}: {e}",
+                exc_info=True,
             )
 
     return assignment
